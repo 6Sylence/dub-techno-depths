@@ -2,9 +2,15 @@ name: Daily Short
 
 # One vertical Short per day at 17:00 UTC ≈ 12:00-13:00 US Eastern — the lunch
 # scrolling window. SLOT=1 makes the Short tease that day's 2h workday mix.
+#
+# TEMPORARILY PAUSED: both channels share one Google Cloud project and its
+# 10,000-unit daily API quota; this Short is the trim that keeps the rest of
+# the schedule safely under it. Re-enable the cron below once this channel has
+# its own Cloud project (see README "Puesta en marcha" — same steps, new
+# project), which restores a full 10k quota to each channel.
 on:
-  schedule:
-    - cron: "0 17 * * *"
+  # schedule:
+  #   - cron: "0 17 * * *"
   workflow_dispatch:
     inputs:
       preset:
