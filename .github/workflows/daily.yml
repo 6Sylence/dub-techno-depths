@@ -51,6 +51,7 @@ jobs:
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || (github.event.schedule == '30 13 * * *' && '7200' || '3600') }}
           DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
           SLOT: ${{ github.event.schedule == '30 13 * * *' && '1' || '0' }}
+          AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
           PRESET: ${{ github.event.inputs.preset }}
           NO_UPLOAD: ${{ github.event.inputs.no_upload }}
         run: python -m src.pipeline

@@ -125,6 +125,12 @@ def main(argv=None) -> int:
     print("[6/6] uploading to YouTube…")
     from .upload_youtube import upload_video
     video_id = upload_video(final_mp4, meta, thumbnail_path=thumb, publish_at=args.publish_at)
+    if not args.vertical and meta.get("playlist"):
+        try:
+            from .upload_youtube import add_to_playlist
+            add_to_playlist(video_id, meta["playlist"])
+        except Exception as exc:  # never fail the upload over playlist curation
+            print(f"playlist skipped: {exc}")
     (out_dir / "result.json").write_text(json.dumps(
         {"date": date.isoformat(), "preset": preset["id"], "video_id": video_id,
          "url": f"https://youtu.be/{video_id}"}, indent=2))

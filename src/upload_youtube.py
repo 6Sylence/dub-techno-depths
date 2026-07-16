@@ -123,10 +123,14 @@ def upload_video(video_path: str | Path, meta: dict,
         },
         "status": status,
     }
+    parts = "snippet,status"
+    if meta.get("localizations"):
+        body["localizations"] = meta["localizations"]
+        parts += ",localizations"
 
     media = MediaFileUpload(str(video_path), chunksize=8 * 1024 * 1024,
                             resumable=True, mimetype="video/mp4")
-    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+    request = youtube.videos().insert(part=parts, body=body, media_body=media)
 
     response = None
     while response is None:
@@ -147,3 +151,35 @@ def upload_video(video_path: str | Path, meta: dict,
             print(f"thumbnail skipped: {exc}", flush=True)
 
     return video_id
+
+def _find_or_create_playlist(youtube, title: str) -> str:
+    """Return the id of the channel playlist named ``title``, creating it once."""
+    request = youtube.playlists().list(part="snippet", mine=True, maxResults=50)
+    while request is not None:
+        response = request.execute()
+        for item in response.get("items", []):
+            if item["snippet"]["title"] == title:
+                return item["id"]
+        request = youtube.playlists().list_next(request, response)
+    created = youtube.playlists().insert(
+        part="snippet,status",
+        body={"snippet": {"title": title,
+                          "description": "New videos are added automatically every day."},
+              "status": {"privacyStatus": "public"}},
+    ).execute()
+    print(f"created playlist: {title}", flush=True)
+    return created["id"]
+
+
+def add_to_playlist(video_id: str, playlist_title: str) -> None:
+    """Append ``video_id`` to the genre playlist (playlists chain views, which
+    boosts session watch time — the metric the algorithm rewards most)."""
+    youtube = _service()
+    playlist_id = _find_or_create_playlist(youtube, playlist_title)
+    youtube.playlistItems().insert(
+        part="snippet",
+        body={"snippet": {"playlistId": playlist_id,
+                          "resourceId": {"kind": "youtube#video",
+                                         "videoId": video_id}}},
+    ).execute()
+    print(f"added to playlist: {playlist_title}", flush=True)
