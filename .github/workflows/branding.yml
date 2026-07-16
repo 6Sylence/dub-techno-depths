@@ -1,0 +1,36 @@
+name: Channel branding
+
+# Manual one-shot: renders the banner and applies channel description,
+# keywords, country, trailer and banner via the YouTube API. Re-run after
+# editing the constants in scripts/setup_channel.py.
+on:
+  workflow_dispatch:
+
+jobs:
+  brand:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Apply channel branding
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: python scripts/setup_channel.py
+
+      - name: Upload banner artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: banner
+          path: out/banner.jpg
+          retention-days: 7
