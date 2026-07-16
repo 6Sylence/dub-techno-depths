@@ -1,0 +1,33 @@
+name: Delete video
+
+# Destructive maintenance tool: permanently deletes ONE video from the channel.
+# Manual dispatch only, and the video id must be typed in explicitly.
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: "YouTube video id to delete permanently"
+        required: true
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Delete the video
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          VIDEO_ID: ${{ github.event.inputs.video_id }}
+        run: python scripts/delete_video.py

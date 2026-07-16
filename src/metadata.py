@@ -34,13 +34,12 @@ LOCALES = {
 }
 
 
-def _localizations(preset: dict, dur: str) -> dict:
-    emoji = preset.get("emoji", "")
-    out = {}
-    for lang, (phrase, desc) in LOCALES.items():
-        title = f"{preset['title']} {emoji} {phrase} | {dur}"
-        out[lang] = {"title": title[:100].strip(), "description": desc}
-    return out
+def _localizations(title: str) -> dict:
+    """Localize only the DESCRIPTION. The title stays in English everywhere:
+    the strong keywords ("Hypnotic", "Dub Techno Mix") are what pull clicks,
+    and viewers of this niche search in English regardless of their locale."""
+    return {lang: {"title": title, "description": desc}
+            for lang, (_phrase, desc) in LOCALES.items()}
 
 
 def _affiliate_block() -> str:
@@ -119,7 +118,7 @@ Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedu
         "privacyStatus": privacy,
         "thumbnail_title": preset["title"],
         "thumbnail_subtitle": f"{primary} • {dur}",
-        "localizations": _localizations(preset, dur),
+        "localizations": _localizations(title),
         "playlist": preset["title"] + " Mixes",
     }
 
