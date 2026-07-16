@@ -1,0 +1,64 @@
+name: Daily Short
+
+# One vertical Short per day at 17:00 UTC ≈ 12:00-13:00 US Eastern — the lunch
+# scrolling window. SLOT=1 makes the Short tease that day's 2h workday mix.
+on:
+  schedule:
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "Force a preset id (blank = slot rotation)"
+        required: false
+        default: ""
+      no_upload:
+        description: "Render only, do not upload (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: daily-short
+  cancel-in-progress: false
+
+jobs:
+  render-and-upload-short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Render and upload Short
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          VERTICAL: "1"
+          LOOP_SECONDS: "60"
+          TARGET_SECONDS: "60"
+          SLOT: "1"
+          DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
+          PRESET: ${{ github.event.inputs.preset }}
+          NO_UPLOAD: ${{ github.event.inputs.no_upload }}
+        run: python -m src.pipeline
+
+      - name: Upload render artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: short-${{ github.run_id }}
+          path: |
+            out/metadata.json
+            out/result.json
+          if-no-files-found: ignore
+          retention-days: 7

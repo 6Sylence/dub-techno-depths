@@ -1,0 +1,20 @@
+# Render outputs
+out/
+*.wav
+*.mp4
+*.png
+*.jpg
+!docs/**/*.png
+!docs/**/*.jpg
+
+# Secrets — never commit these
+client_secret*.json
+*.token
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/

@@ -1,0 +1,56 @@
+name: CI smoke test
+
+# Validates the full render pipeline end-to-end (engine + ffmpeg) on short
+# clips for every preset, plus one vertical Short, without uploading.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit checks (engine is deterministic, seamless & on the grid)
+        run: python -m tests.test_audio
+
+      - name: Render a short clip for every preset (no upload)
+        run: |
+          for pid in dub_classic deep_space minimal_dub warm_dub abyss drive; do
+            echo "::group::preset $pid"
+            PRESET=$pid NO_UPLOAD=1 python -m src.pipeline \
+              --loop-seconds 16 --target-seconds 32 --out-dir out/$pid
+            test -f out/$pid/video.mp4 || { echo "no video for $pid"; exit 1; }
+            ffprobe -v error -show_entries format=duration -of csv=p=0 out/$pid/video.mp4
+            echo "::endgroup::"
+          done
+
+      - name: Render a vertical Short (no upload)
+        run: |
+          PRESET=dub_classic NO_UPLOAD=1 VERTICAL=1 python -m src.pipeline \
+            --loop-seconds 16 --target-seconds 16 --out-dir out/_short
+          test -f out/_short/video.mp4 || { echo "no short video"; exit 1; }
+
+      - name: Upload sample renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: samples
+          path: out/**/video.mp4
+          retention-days: 5
+          if-no-files-found: warn

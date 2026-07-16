@@ -1,0 +1,120 @@
+# Subgenre presets for Dub Techno Depths.
+#
+# audio.* parameters drive src/audio.py (the dub techno engine); visual.* is
+# consumed by src/video.py (parallax gradient + mist + particles). One preset
+# rotates in per day, and the daily seed also varies key/patterns, so no two
+# uploads ever sound the same.
+
+presets:
+  - id: dub_classic
+    title: "Dub Techno"
+    theme_words: ["Deep Focus", "Coding", "Late Night Work", "Hypnosis"]
+    emoji: "🌀"
+    audio:
+      bpm: 122
+      chord: m7
+      bright: 2400
+      delay_fb: 0.55
+      hat_gain: 0.5
+      pad_gain: 0.25
+      crackle_gain: 0.6
+    visual:
+      palette: ["#050a0c", "#0a1a1e", "#123236", "#1d5359"]
+      grain: 0.06
+      vignette: 0.62
+      scroll_seconds: 300
+
+  - id: deep_space
+    title: "Deep Space Techno"
+    theme_words: ["Deep Work", "Night Drive", "Immersion", "Flow State"]
+    emoji: "🛰️"
+    audio:
+      bpm: 118
+      chord: m9
+      bright: 1700
+      delay_fb: 0.62
+      hat_gain: 0.3
+      pad_gain: 0.4
+      crackle_gain: 0.4
+      stab_slots: [2, 19]
+    visual:
+      palette: ["#03040c", "#0a0d22", "#151b40", "#232c63"]
+      grain: 0.05
+      vignette: 0.68
+      scroll_seconds: 340
+
+  - id: minimal_dub
+    title: "Minimal Dub Techno"
+    theme_words: ["Focus", "Study", "Productivity", "Concentration"]
+    emoji: "⚫"
+    audio:
+      bpm: 124
+      chord: sus
+      bright: 2800
+      delay_fb: 0.5
+      hat_gain: 0.65
+      pad_gain: 0.12
+      crackle_gain: 0.7
+      stab_slots: [3, 14, 27]
+    visual:
+      palette: ["#0a0a0b", "#161617", "#242426", "#39393d"]
+      grain: 0.07
+      vignette: 0.6
+      scroll_seconds: 280
+
+  - id: warm_dub
+    title: "Warm Analog Dub"
+    theme_words: ["Chill", "Reading", "Rainy Day", "Lo-Fi Techno"]
+    emoji: "📻"
+    audio:
+      bpm: 116
+      chord: m7
+      bright: 1500
+      delay_fb: 0.6
+      kick_gain: 0.85
+      hat_gain: 0.35
+      pad_gain: 0.35
+      crackle_gain: 1.0
+    visual:
+      palette: ["#140d06", "#2a1c0e", "#453017", "#6b4c24"]
+      grain: 0.08
+      vignette: 0.62
+      scroll_seconds: 320
+
+  - id: abyss
+    title: "Abyssal Dub Techno"
+    theme_words: ["Dark Ambient Techno", "Deep Dive", "Meditation", "Tunnel Vision"]
+    emoji: "🌊"
+    audio:
+      bpm: 120
+      chord: m9
+      bright: 1300
+      delay_fb: 0.68
+      hat_gain: 0.2
+      pad_gain: 0.45
+      crackle_gain: 0.35
+      stab_slots: [5, 21]
+    visual:
+      palette: ["#020608", "#052030", "#0a3a52", "#125d80"]
+      grain: 0.05
+      vignette: 0.7
+      scroll_seconds: 360
+
+  - id: drive
+    title: "Night Drive Techno"
+    theme_words: ["Night Drive", "Motorway", "Momentum", "After Hours"]
+    emoji: "🌃"
+    audio:
+      bpm: 126
+      chord: sus
+      bright: 3200
+      delay_fb: 0.5
+      hat_gain: 0.7
+      pad_gain: 0.2
+      crackle_gain: 0.3
+      stab_slots: [2, 10, 18, 26]
+    visual:
+      palette: ["#0b0413", "#1d0a2e", "#37124f", "#5b1f78"]
+      grain: 0.06
+      vignette: 0.6
+      scroll_seconds: 260

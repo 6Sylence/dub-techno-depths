@@ -1,0 +1,68 @@
+name: Daily techno upload
+
+# Focus music is consumed while working/studying, so both slots target the
+# start of work sessions (cron is UTC):
+#   06:30 UTC — EU morning (7:30-8:30 CET), 1h mix.
+#   13:30 UTC — US morning (8:30-9:30 ET), 2h mix for the workday.
+# Slots use different presets via SLOT so same-day uploads never duplicate.
+on:
+  schedule:
+    - cron: "30 6 * * *"
+    - cron: "30 13 * * *"
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "Force a preset id (blank = rotate by date)"
+        required: false
+        default: ""
+      no_upload:
+        description: "Render only, do not upload (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: daily-upload
+  cancel-in-progress: false
+
+jobs:
+  render-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Render and upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || (github.event.schedule == '30 13 * * *' && '7200' || '3600') }}
+          DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
+          SLOT: ${{ github.event.schedule == '30 13 * * *' && '1' || '0' }}
+          PRESET: ${{ github.event.inputs.preset }}
+          NO_UPLOAD: ${{ github.event.inputs.no_upload }}
+        run: python -m src.pipeline
+
+      - name: Upload render artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-${{ github.run_id }}
+          path: |
+            out/metadata.json
+            out/result.json
+            out/thumbnail.jpg
+          if-no-files-found: ignore
+          retention-days: 7
