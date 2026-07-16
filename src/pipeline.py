@@ -87,15 +87,16 @@ def main(argv=None) -> int:
     samples = audio.render_loop(preset["audio"], args.loop_seconds, seed=seed)
     write_wav(samples, wav)
 
-    print("[2/6] rendering animated layers (background + mist + particles)…")
+    fx_kind = preset["visual"].get("effect", "bubbles")
+    print(f"[2/6] rendering animated layers (background + mist + {fx_kind})…")
     mist = out_dir / "mist.png"
-    particles = out_dir / "particles.png"
+    effect = out_dir / "effect.png"
     video.build_background(preset, bg, width=w, height=h, seed=seed)
     video.build_mist(preset, mist, width=w, height=h, seed=seed)
-    video.build_particles(preset, particles, width=w, height=h, seed=seed)
+    video.build_effect_layer(preset, effect, width=w, height=h, seed=seed)
 
     print("[3/6] encoding seamless animated loop clip…")
-    run(video.build_loop_clip_cmd(str(bg), str(mist), str(particles), str(wav),
+    run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), str(wav),
                                   preset, args.loop_seconds, str(loop_mp4),
                                   width=w, height=h))
 
