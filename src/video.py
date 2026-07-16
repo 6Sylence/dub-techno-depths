@@ -17,8 +17,11 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-WIDTH = 1920
-HEIGHT = 1080
+# 1440p ("2K"): procedural art costs nothing to render larger, and YouTube
+# assigns >=1440p uploads its higher-quality VP9 transcode — visibly better
+# than the AVC it gives 1080p, even for viewers watching at 1080p.
+WIDTH = 2560
+HEIGHT = 1440
 FPS = 24
 
 
@@ -289,9 +292,9 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
         "-filter_complex", fc,
         "-map", "[v]", "-map", "3:a",
         "-c:v", "libx264", "-preset", "veryfast",
-        "-crf", "23", "-maxrate", "3000k", "-bufsize", "6000k",
+        "-crf", "20", "-maxrate", "4500k", "-bufsize", "9000k",
         "-r", str(fps), "-t", f"{loop_seconds}",
-        "-c:a", "aac", "-b:a", "192k",
+        "-c:a", "aac", "-b:a", "256k",
         "-shortest",
         out_mp4,
     ]
