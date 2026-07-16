@@ -174,12 +174,20 @@ def _find_or_create_playlist(youtube, title: str) -> str:
 def add_to_playlist(video_id: str, playlist_title: str) -> None:
     """Append ``video_id`` to the genre playlist (playlists chain views, which
     boosts session watch time — the metric the algorithm rewards most)."""
+    import time
+
     youtube = _service()
     playlist_id = _find_or_create_playlist(youtube, playlist_title)
-    youtube.playlistItems().insert(
-        part="snippet",
-        body={"snippet": {"playlistId": playlist_id,
-                          "resourceId": {"kind": "youtube#video",
-                                         "videoId": video_id}}},
-    ).execute()
-    print(f"added to playlist: {playlist_title}", flush=True)
+    body = {"snippet": {"playlistId": playlist_id,
+                        "resourceId": {"kind": "youtube#video",
+                                       "videoId": video_id}}}
+    for attempt in (1, 2, 3):
+        try:
+            youtube.playlistItems().insert(part="snippet", body=body).execute()
+            print(f"added to playlist: {playlist_title}", flush=True)
+            return
+        except Exception as exc:  # transient 409/5xx right after playlist creation
+            if attempt == 3:
+                raise
+            print(f"playlist insert retry {attempt} after error: {exc}", flush=True)
+            time.sleep(5 * attempt)

@@ -26,7 +26,7 @@ from src.upload_youtube import _service  # noqa: E402
 CHANNEL_NAME = "Dub Techno Depths"
 TAGLINE = "Hypnotic dub techno for deep work, coding & study — daily mixes"
 SIGNATURE_PRESET = "dub_classic"    # dense teal smoke banner art
-TRAILER_VIDEO_ID = "mtjpAI43byE"    # first published mix
+TRAILER_VIDEO_ID = "TL4miyIetxk"    # deep_space mix with the themed visuals
 COUNTRY = "US"
 DESCRIPTION = """Hypnotic dub techno mixes for deep work, coding and late-night study — a new mix every day.
 

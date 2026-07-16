@@ -53,7 +53,11 @@ def main(argv=None) -> int:
 
     presets = load_presets(args.config)
     preset = select_preset(presets, date, args.preset, offset=args.slot)
-    seed = daily_seed(date, preset["id"])
+    seed = daily_seed(date, f"{preset['id']}#s{args.slot}")
+    # Manual dispatches must never clone that day's scheduled upload: salt the
+    # seed with the unique run id so ad-hoc runs always produce fresh audio.
+    if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+        seed = (seed + int(os.environ.get("GITHUB_RUN_ID", "0"))) % (2**31)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
