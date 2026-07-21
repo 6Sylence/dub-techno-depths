@@ -107,7 +107,7 @@ def _ep_note(sr, freq, dur, t0, warble_hz, warble_depth, vel):
     phase = 2 * np.pi * freq * np.cumsum(vib) / sr
     tone = np.sin(phase) + 0.4 * np.sin(2 * phase) + 0.05 * np.sin(3 * phase)
     tone += 0.12 * np.sin(4 * phase) * np.exp(-idx / (0.03 * sr))    # short soft tine
-    env = np.minimum(idx / (0.015 * sr), 1.0) * np.exp(-idx / (0.55 * sr))  # plucky
+    env = np.minimum(idx / (0.015 * sr), 1.0) * np.exp(-idx / (0.48 * sr))  # plucky
     tone = _lowpass_fft(tone * env, min(freq * 7 + 400, 5500), sr)   # mellow warmth
     return tone * vel
 
@@ -237,13 +237,15 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     keys = _normalize(keys) * chord_gain
 
-    # --- lo-fi reverb on the keys: a few wrapped, darkening echo taps ------
+    # --- lo-fi reverb on the keys: a couple of dark, quick echo taps -------
+    # Kept short, dark (heavily low-passed) and low-gain so it colours the
+    # chords without leaving a continuous bright wash smeared across the gaps.
     reverb = float(preset.get("reverb", 0.25))
     if reverb > 0:
         wet = np.zeros(n)
-        tap = _lowpass_fft(keys, 2500, sr)
-        for k in range(1, 5):
-            _wrap_add(wet, tap * (reverb * 0.6 ** k), int(k * 0.11 * sr))
+        tap = _lowpass_fft(keys, 1400, sr)
+        for k in range(1, 4):
+            _wrap_add(wet, tap * (reverb * 0.45 ** k), int(k * 0.095 * sr))
         keys = keys + wet
 
     # --- assemble + gentle sidechain duck under the kick ------------------
@@ -261,15 +263,21 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     # bass/kick low end (which otherwise dominates the energy and muddies it).
     music = drums * 0.8 + pump * (bass * 0.3 + keys * 1.4)
 
-    # Dynamic dark tape hiss: a whisper that ebbs UNDER the music (loud passages
-    # mask it, it only just peeks through in the gaps) — the pro-lofi trick that
-    # avoids a constant, fatiguing "shhh".
-    env = _lowpass_fft(np.abs(music), 6, sr)
-    env = env / max(env.max(), 1e-9)
-    hiss = _normalize(_lowpass_fft(rng.standard_normal(n), 2600, sr))
-    hiss = hiss * 0.006 * cg * (1.0 - 0.8 * env)
+    # Texture is sparse, transient vinyl pops ONLY — no continuous noise bed.
+    # A steady filtered-noise "tape hiss" (however quiet) is exactly the
+    # constant background sound the human ear locks onto and finds fatiguing,
+    # so it is off by default; a preset can dial a faint whisper back in with
+    # `hiss_gain`, and even then it is ducked hard under the music.
+    hiss_gain = float(preset.get("hiss_gain", 0.0))
+    if hiss_gain > 0:
+        env = _lowpass_fft(np.abs(music), 6, sr)
+        env = env / max(env.max(), 1e-9)
+        hiss = _normalize(_lowpass_fft(rng.standard_normal(n), 2200, sr))
+        hiss = hiss * 0.004 * hiss_gain * (1.0 - 0.85 * env)
+    else:
+        hiss = 0.0
 
-    crackle = _crackle(n, sr, rng, 1.3) * cg * 0.6           # sparse warm pops
+    crackle = _crackle(n, sr, rng, 1.0) * cg * 0.5           # sparse warm pops
     ambience = _rain(n, sr, rng) * float(preset.get("rain_gain", 0.0)) * 0.35
 
     mono = music + crackle + hiss + ambience
