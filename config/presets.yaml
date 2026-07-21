@@ -37,7 +37,7 @@ presets:
       warble: 0.007
       master_cut: 6500
       crackle_gain: 1.0
-      rain_gain: 0.15
+      rain_gain: 0.08
       reverb: 0.35
       hat_gain: 0.7
     visual:
@@ -60,7 +60,7 @@ presets:
       warble: 0.005
       master_cut: 5000
       crackle_gain: 0.8
-      rain_gain: 0.5
+      rain_gain: 0.28
       reverb: 0.28
     visual:
       palette: ["#0b1420", "#152736", "#233d52", "#356078"]

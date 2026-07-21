@@ -56,6 +56,18 @@ def _bandpass(x, lo, hi, sr):
     return _highpass_fft(_lowpass_fft(x, hi, sr), lo, sr)
 
 
+def _eq(x, sr):
+    """Corrective master EQ (the pro-lofi cleanup): high-pass sub rumble, dip the
+    300-500 Hz mud, and scoop the 800 Hz-1 kHz 'bark' where the Rhodes turns
+    harsh/noisy — the band that made the sustained chords fatiguing."""
+    spec = np.fft.rfft(x)
+    f = np.fft.rfftfreq(x.size, 1.0 / sr)
+    g = f ** 2 / (f ** 2 + 32.0 ** 2)                       # HPF ~32 Hz
+    g *= 1.0 - 0.32 * np.exp(-((f - 380.0) / 190.0) ** 2)   # -mud ~380 Hz
+    g *= 1.0 - 0.42 * np.exp(-((f - 950.0) / 420.0) ** 2)   # -bark ~950 Hz
+    return np.fft.irfft(spec * g, n=x.size)
+
+
 def _wrap_add(buf: np.ndarray, event: np.ndarray, start: int) -> None:
     """Add ``event`` into circular buffer ``buf`` at ``start``; overflow wraps."""
     n = buf.shape[0]
@@ -85,16 +97,19 @@ def snap_loop_seconds(bpm: float, seconds: float) -> float:
 # Instruments
 # --------------------------------------------------------------------------- #
 def _ep_note(sr, freq, dur, t0, warble_hz, warble_depth, vel):
-    """Rhodes-ish electric-piano note with tape warble (absolute-time vibrato)."""
+    """Warm Rhodes-ish electric-piano note: mostly fundamental + a soft 2nd, a
+    brief attack tine, gentle tape warble, and a plucky decay so chords leave
+    space between hits instead of droning. Per-note low-pass keeps it mellow."""
     n = int(dur * sr)
     idx = np.arange(n)
     t = (t0 + idx) / sr
-    vib = 1.0 + warble_depth * np.sin(2 * np.pi * warble_hz * t)
+    vib = 1.0 + 0.5 * warble_depth * np.sin(2 * np.pi * warble_hz * t)   # subtle
     phase = 2 * np.pi * freq * np.cumsum(vib) / sr
-    tone = np.sin(phase) + 0.5 * np.sin(2 * phase) + 0.12 * np.sin(3 * phase)
-    tone += 0.25 * np.sin(4 * phase) * np.exp(-idx / (0.04 * sr))   # bell-y attack
-    env = np.minimum(idx / (0.02 * sr), 1.0) * np.exp(-idx / (0.9 * sr))
-    return tone * env * vel
+    tone = np.sin(phase) + 0.4 * np.sin(2 * phase) + 0.05 * np.sin(3 * phase)
+    tone += 0.12 * np.sin(4 * phase) * np.exp(-idx / (0.03 * sr))    # short soft tine
+    env = np.minimum(idx / (0.015 * sr), 1.0) * np.exp(-idx / (0.55 * sr))  # plucky
+    tone = _lowpass_fft(tone * env, min(freq * 7 + 400, 5500), sr)   # mellow warmth
+    return tone * vel
 
 
 def _kick(sr):
@@ -244,7 +259,7 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     # Perceptual balance: keys carry the mids/highs, so lift them above the
     # bass/kick low end (which otherwise dominates the energy and muddies it).
-    music = drums * 0.8 + pump * (bass * 0.3 + keys * 1.7)
+    music = drums * 0.8 + pump * (bass * 0.3 + keys * 1.4)
 
     # Dynamic dark tape hiss: a whisper that ebbs UNDER the music (loud passages
     # mask it, it only just peeks through in the gaps) — the pro-lofi trick that
@@ -259,9 +274,14 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     mono = music + crackle + hiss + ambience
 
-    # --- master: gentle "dusty" lowpass (order 2) + soft tape saturation ---
+    # --- master: corrective EQ -> dusty lowpass -> gentle tape saturation -----
+    mono = _eq(mono, sr)
     mono = _lowpass_fft(mono, float(preset.get("master_cut", 6500)), sr, order=2)
-    mono = np.tanh(mono / max(np.percentile(np.abs(mono), 99.0), 1e-9) * 1.1)
+    # Soft-knee limiter: leaves the sustained chords clean, only rounds peaks
+    # (a hard tanh on everything would add a continuous distorted edge).
+    drive = 1.0 / max(np.percentile(np.abs(mono), 99.0), 1e-9)
+    mono = mono * drive
+    mono = np.where(np.abs(mono) > 0.8, np.sign(mono) * (0.8 + 0.2 * np.tanh((np.abs(mono) - 0.8) / 0.2)), mono)
 
     # --- stereo: Haas widening on the keys/crackle ------------------------
     delay = int(0.008 * sr)
