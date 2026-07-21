@@ -17,12 +17,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-# True 4K (2160p): the top deep-techno channels all title their mixes "Cinematic
-# 4K Visuals", so we render at 2160p to match that hook honestly. Our visuals are
-# smooth gradients + sparse sprites, so with the encoder's bitrate cap the file
-# barely grows over 1440p while YouTube now serves a real 4K/VP9 stream.
-WIDTH = 3840
-HEIGHT = 2160
+# 1440p ("2K"): our visuals are a smooth scrolling gradient, so 1440p looks
+# essentially identical to 4K here while the per-frame 4K compositing (crop +
+# 2 overlays + beat-pulse + vignette) was taking ~21 min per render on CI's
+# 2-vCPU runners — too slow/expensive to run twice daily. 1440p still gets
+# YouTube's better VP9 transcode, and the EDM titles never claimed "4K".
+WIDTH = 2560
+HEIGHT = 1440
 FPS = 24
 
 
