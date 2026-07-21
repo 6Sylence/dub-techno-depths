@@ -131,17 +131,20 @@ def _bass(sr, freq, dur):
 
 
 def _crackle(n, sr, rng, density):
-    out = rng.standard_normal(n) * 0.010
-    n_ticks = int(density * n / sr)
-    for _ in range(n_ticks):
-        pos = int(rng.integers(0, max(1, n - 60)))
-        tick = rng.standard_normal(int(rng.integers(6, 40))) * rng.uniform(0.1, 0.55)
-        out[pos:pos + tick.size] += tick
-    return _lowpass_fft(out, 7000, sr)
+    """Vinyl *crackle*: sparse, short, warm pops — the character of a record,
+    NOT a constant hiss wall. The faint tape hiss is added (and ducked under the
+    music) separately by the renderer, the way real lofi records sit."""
+    out = np.zeros(n)
+    n_pops = int(7 * density * n / sr)          # ~7 pops/sec at density 1
+    for _ in range(n_pops):
+        pos = int(rng.integers(0, max(1, n - 20)))
+        length = int(rng.integers(2, 12))       # very short clicks
+        out[pos:pos + length] += rng.standard_normal(length) * rng.uniform(0.12, 0.5)
+    return _lowpass_fft(out, 4200, sr)           # warm/dark, not fizzy
 
 
 def _rain(n, sr, rng):
-    body = _bandpass(rng.standard_normal(n), 600, 8000, sr)
+    body = _bandpass(rng.standard_normal(n), 400, 5000, sr)   # softer, darker
     return _normalize(body)
 
 
@@ -237,12 +240,24 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
         e = min(s + duck_len, n)
         pump[s:e] = np.minimum(pump[s:e], duck[: e - s])
 
-    crackle = _crackle(n, sr, rng, 1.4) * float(preset.get("crackle_gain", 0.7))
-    ambience = _rain(n, sr, rng) * float(preset.get("rain_gain", 0.0))
+    cg = float(preset.get("crackle_gain", 0.7))
 
     # Perceptual balance: keys carry the mids/highs, so lift them above the
     # bass/kick low end (which otherwise dominates the energy and muddies it).
-    mono = drums * 0.8 + pump * (bass * 0.3 + keys * 1.7) + crackle * 1.2 + ambience * 0.5
+    music = drums * 0.8 + pump * (bass * 0.3 + keys * 1.7)
+
+    # Dynamic dark tape hiss: a whisper that ebbs UNDER the music (loud passages
+    # mask it, it only just peeks through in the gaps) — the pro-lofi trick that
+    # avoids a constant, fatiguing "shhh".
+    env = _lowpass_fft(np.abs(music), 6, sr)
+    env = env / max(env.max(), 1e-9)
+    hiss = _normalize(_lowpass_fft(rng.standard_normal(n), 2600, sr))
+    hiss = hiss * 0.006 * cg * (1.0 - 0.8 * env)
+
+    crackle = _crackle(n, sr, rng, 1.3) * cg * 0.6           # sparse warm pops
+    ambience = _rain(n, sr, rng) * float(preset.get("rain_gain", 0.0)) * 0.35
+
+    mono = music + crackle + hiss + ambience
 
     # --- master: gentle "dusty" lowpass (order 2) + soft tape saturation ---
     mono = _lowpass_fft(mono, float(preset.get("master_cut", 6500)), sr, order=2)
