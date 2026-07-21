@@ -23,24 +23,24 @@ from src import video  # noqa: E402
 from src.utils import load_presets  # noqa: E402
 from src.upload_youtube import _service  # noqa: E402
 
-CHANNEL_NAME = "Lofi Study Lounge"
-TAGLINE = "Lofi hip hop beats to study, relax & sleep to — new mix every day"
-SIGNATURE_PRESET = "lofi_study"     # warm amber banner art
+CHANNEL_NAME = "Deep Techno Depths"
+TAGLINE = "Melodic, deep & dub techno — a new mix every single day"
+SIGNATURE_PRESET = "deep_dub"       # dark cosmic banner art
 TRAILER_VIDEO_ID = ""               # set to a video id once one is published
 COUNTRY = "US"
-DESCRIPTION = """Lofi hip hop beats to study, relax and sleep to — a new mix every single day.
+DESCRIPTION = """Melodic, deep and dub techno — a new mix every single day.
 
-Warm Rhodes chords, a soft boom-bap groove and cozy vinyl crackle: made to sit gently in the background while you study, work, read or drift off. Press play and stay in the zone.
+Rolling sidechained bass, detuned analog chords swept through a resonant filter and the deep dub-delay echo that keeps it hypnotic: made to roll in the background while you work, focus, drive or lose yourself in the late-night hours.
 
-Every mix on this channel is 100% original, procedurally produced music and visuals — unique to Lofi Study Lounge and completely copyright-safe. No samples, no re-uploads, no filler.
+Every mix on this channel is 100% original, procedurally produced music and visuals — unique to Deep Techno Depths and completely copyright-safe. No samples, no re-uploads, no filler.
 
 📅 Upload schedule (UTC)
-• Every morning — a 1-hour mix to start the day
-• Every afternoon — a 2-hour study session mix
+• Every morning — a 1-hour mix to start the session
+• Every afternoon — a 2-hour deep session mix
 
 🔔 Subscribe and turn on notifications — tomorrow's mix is already on its way."""
-KEYWORDS = ('"lofi hip hop" "lofi beats" "study music" "chillhop" '
-            '"beats to relax to" "beats to study to" "lofi radio" relax sleep focus')
+KEYWORDS = ('"melodic techno" "deep techno" "dub techno" "techno mix" '
+            '"hypnotic techno" "dark techno" "driving techno" focus work night')
 
 BANNER_W, BANNER_H = 2560, 1440     # YouTube renders a 1546x423 safe strip centered
 

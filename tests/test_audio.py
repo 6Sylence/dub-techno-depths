@@ -1,4 +1,4 @@
-"""Checks for the lofi engine. Run with: python -m tests.test_audio"""
+"""Checks for the techno engine. Run with: python -m tests.test_audio"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from src.audio import DEFAULT_SR, render_loop, snap_loop_seconds
 from src.utils import load_presets
 
 PRESET = next(p for p in load_presets("config/presets.yaml")
-              if p["id"] == "lofi_study")["audio"]
+              if p["id"] == "deep_dub")["audio"]
 BPM = PRESET["bpm"]
 
 
@@ -46,8 +46,8 @@ def test_seamless():
 
 
 def test_groove():
-    """Boom-bap has its clearest periodicity at the bar, not the beat (kick vs
-    snare backbeat anti-correlate at 1 beat), so verify the bar-level pulse."""
+    """Four-on-the-floor repeats every bar, so the envelope autocorrelation has a
+    clear peak at the one-bar lag — verify that steady pulse is present."""
     x = render_loop(PRESET, 24, seed=42).astype(float)[:, 0]
     env = np.abs(x)
     env = env[: len(env) // 441 * 441].reshape(-1, 441).mean(1)
