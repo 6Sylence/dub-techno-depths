@@ -31,7 +31,7 @@ jobs:
 
       - name: Render a short clip for every preset (no upload)
         run: |
-          for pid in dub_classic deep_space minimal_dub warm_dub abyss drive; do
+          for pid in lofi_study sleepy_lofi rainy_lofi jazzy_lofi boombap_lofi dreamy_lofi; do
             echo "::group::preset $pid"
             PRESET=$pid NO_UPLOAD=1 python -m src.pipeline \
               --loop-seconds 16 --target-seconds 32 --out-dir out/$pid
@@ -42,7 +42,7 @@ jobs:
 
       - name: Render a vertical Short (no upload)
         run: |
-          PRESET=dub_classic NO_UPLOAD=1 VERTICAL=1 python -m src.pipeline \
+          PRESET=lofi_study NO_UPLOAD=1 VERTICAL=1 python -m src.pipeline \
             --loop-seconds 16 --target-seconds 16 --out-dir out/_short
           test -f out/_short/video.mp4 || { echo "no short video"; exit 1; }
 

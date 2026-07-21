@@ -1,59 +1,59 @@
-# 🌀 Dub Techno Depths — Canal de techno generativo automatizado
+# 🎧 Lofi Study Lounge — Canal de lofi hip hop automatizado
 
-Hermano del canal ambient (`sylence-ambient`), con la misma arquitectura probada
-pero un **motor de dub techno procedural**: genera y publica mixes hipnóticos de
-dub/deep techno en YouTube **cada día, sin intervención humana**.
+Genera y publica un mix de **lofi hip hop** nuevo cada día en YouTube, de forma
+totalmente automática. (Este repo empezó como un canal de techno y se reorientó
+a lofi — un nicho con mucha más demanda de audiencia.)
 
-Todo es **100% original y sintetizado desde cero** con numpy — kick, sub-bajo con
-sidechain, acordes dub a través de un delay ping-pong con feedback, hats, pads y
-crujido de vinilo. Nada sampleado → cero riesgo de copyright.
+Todo es **100% original y sintetizado desde cero** con numpy: batería boom-bap
+suave, sub-bajo cálido, acordes jazz de piano Rhodes con *warble* de cinta,
+hi-hats con swing, lluvia opcional y crujido de vinilo. Nada sampleado → seguro
+frente a copyright y a la nueva política de "contenido inauténtico" de YouTube.
 
 ## El motor (src/audio.py)
 
-- **Rejilla musical:** los loops se cuadran a frases de 8 compases al BPM del
-  preset, y las colas de delay **dan la vuelta al buffer** (wrap-around), así el
-  loop es matemáticamente perfecto y un mix de 1-2 h no tiene ni una costura.
-- **Kick** four-to-the-floor (seno con caída de pitch 140→44 Hz + click).
-- **Sub-bajo** en corcheas a contratiempo, saturación suave.
-- **Acordes dub** (m7/m9/sus, saw band-limited + lowpass) con **delay de corchea
-  con puntillo en ping-pong** que se oscurece eco a eco — el sonido Basic Channel.
-- **Sidechain pump** en todo menos el kick.
-- **Clave y patrones aleatorios por día** (seed determinista) → cada upload es único.
+- **Rejilla musical:** los loops se cuadran a frases de 8 compases; la progresión
+  de acordes (4 compases, voicings maj7/min9/dom9…) tesela el loop, y las colas
+  de reverb/notas **dan la vuelta al buffer**, así un mix de 1-2 h no tiene costura.
+- **Batería boom-bap:** bombo suave con caída de pitch, caja en 2 y 4, hi-hats a
+  corcheas **con swing** y humanización de velocidad.
+- **Rhodes jazzy:** cada nota es un piano eléctrico sintetizado con vibrato de
+  cinta coherente (warble), a través de una reverb oscura de ecos envueltos.
+- **Textura:** sub-bajo cálido, sidechain suave, filtro "polvoriento" y vinilo.
+- **Clave/patrones aleatorios por día** (seed determinista) → ningún mix se repite.
 
 ## Presets (rotación diaria)
 
-| id            | Estilo                          | BPM |
-| ------------- | ------------------------------- | --- |
-| `dub_classic` | Dub techno clásico              | 122 |
-| `deep_space`  | Espacial, m9, delays largos     | 118 |
-| `minimal_dub` | Minimal, sus, clicky            | 124 |
-| `warm_dub`    | Cálido analógico, mucho vinilo  | 116 |
-| `abyss`       | Oscuro abisal, casi sin hats    | 120 |
-| `drive`       | Nocturno, más rápido y brillante| 126 |
+| id            | Estilo                        | BPM |
+| ------------- | ----------------------------- | --- |
+| `lofi_study`  | Clásico cálido para estudiar  | 78  |
+| `sleepy_lofi` | Lento, nocturno, con lluvia   | 68  |
+| `rainy_lofi`  | Día de lluvia, acogedor       | 74  |
+| `jazzy_lofi`  | Café, más brillante y movido  | 84  |
+| `boombap_lofi`| Boom bap old-school, pegada   | 86  |
+| `dreamy_lofi` | Onírico, maj9, mucha reverb   | 70  |
 
 ## Automatización
 
-- `daily.yml` — 2 mixes/día en horarios de **música de trabajo**: 06:30 UTC
-  (mañana EU, 1 h) y 13:30 UTC (mañana US, 2 h), con presets distintos por slot.
-- `shorts.yml` — 1 Short vertical/día a las 17:00 UTC (mediodía US) que
-  promociona el mix del día.
+- `daily.yml` — 2 mixes/día (mañana 1 h, tarde 2 h), presets distintos por slot.
+- `shorts.yml` — 1 Short vertical/día (dispatch manual; reactivable en cron).
 - `ci.yml` — smoke test end-to-end de todos los presets en cada push.
+- `branding.yml` / `delete-video.yml` — mantenimiento del canal.
 
 ## Puesta en marcha
 
-Reutiliza el proyecto de Google Cloud del canal ambient (mismo `client_secret`):
+Reutiliza el mismo canal de YouTube, secrets y proyecto de Google Cloud que ya
+tenía el canal de techno. Solo hay que:
+1. Renombrar el canal en YouTube Studio a **"Lofi Study Lounge"** (o el nombre que
+   elijas — dilo y actualizo `CHANNEL_NAME`), y borrar los mixes de techno viejos.
+2. Ejecutar el workflow **Channel branding** para aplicar banner/descripción lofi.
+3. (Opcional) subir el avatar nuevo en Studio.
 
-1. Crea el canal de YouTube **"Dub Techno Depths"** (cuenta de marca) y verifícalo.
-2. `python scripts/get_refresh_token.py client_secret.json` — inicia sesión y
-   **elige el canal nuevo** en el selector de cuenta/canal.
-3. Guarda en este repo los secrets `YT_CLIENT_ID`, `YT_CLIENT_SECRET` (los mismos
-   del otro canal) y `YT_REFRESH_TOKEN` (el **nuevo**).
-4. Actions → *Daily techno upload* → Run workflow.
+Los secrets `YT_CLIENT_ID/SECRET/REFRESH_TOKEN` ya existentes siguen valiendo.
 
 ## Uso local
 
 ```bash
-pip install -r requirements.txt   # + ffmpeg en el sistema
-python -m src.pipeline --no-upload --loop-seconds 32 --target-seconds 64
+pip install -r requirements.txt   # + ffmpeg
+python -m src.pipeline --no-upload --loop-seconds 24 --target-seconds 48
 python -m tests.test_audio
 ```

@@ -1,8 +1,9 @@
-"""Deterministic YouTube metadata for Dub Techno Depths.
+"""Deterministic YouTube metadata for the lofi channel.
 
-Same contract as the ambient channel's module: fully reproducible for a given
-(preset, date), rotating headline keywords so repeated presets never publish
-identical titles.
+Reproducible per (preset, date); rotating headline keywords so a repeated preset
+never publishes an identical title. Titles stay English for every locale (the
+hook keywords — "study", "relax", "sleep" — are what pull clicks worldwide);
+only the description is localized.
 """
 
 from __future__ import annotations
@@ -10,46 +11,31 @@ from __future__ import annotations
 import datetime as _dt
 import os
 
-CHANNEL_NAME = "Dub Techno Depths"
+CHANNEL_NAME = "Lofi Study Lounge"
 
-# Localized title phrase + short description per language (YouTube shows these
-# to viewers browsing in that language; defaultLanguage="en" is set on upload).
 LOCALES = {
-    "es": ("mix para concentrarse y trabajar",
-           "Dub techno hipnótico para concentrarse, programar y estudiar. "
-           "Un mix nuevo cada día — suscríbete. 🔔"),
-    "pt": ("mix para foco e trabalho",
-           "Dub techno hipnótico para foco, programação e estudo. "
-           "Um mix novo todos os dias — inscreva-se. 🔔"),
-    "de": ("Mix zum Konzentrieren und Arbeiten",
-           "Hypnotischer Dub Techno zum Konzentrieren, Programmieren und Lernen. "
-           "Jeden Tag ein neuer Mix — abonnieren. 🔔"),
-    "fr": ("mix pour la concentration et le travail",
-           "Dub techno hypnotique pour la concentration, le code et l'étude. "
-           "Un nouveau mix chaque jour — abonnez-vous. 🔔"),
-    "ja": ("集中・作業用ミックス",
-           "集中、コーディング、勉強のためのヒプノティックなダブテクノ。毎日新しいミックスを公開 — チャンネル登録お願いします。🔔"),
-    "hi": ("फोकस और काम के लिए मिक्स",
-           "फोकस, कोडिंग और पढ़ाई के लिए सम्मोहक डब टेक्नो। हर दिन नया मिक्स — सब्सक्राइब करें। 🔔"),
+    "es": "Beats lofi para estudiar, relajarte y dormir. Un mix nuevo cada día — suscríbete. 🔔",
+    "pt": "Beats lofi para estudar, relaxar e dormir. Um mix novo todos os dias — inscreva-se. 🔔",
+    "de": "Lofi-Beats zum Lernen, Entspannen und Einschlafen. Jeden Tag ein neuer Mix — abonnieren. 🔔",
+    "fr": "Beats lofi pour étudier, se détendre et dormir. Un nouveau mix chaque jour — abonnez-vous. 🔔",
+    "ja": "勉強・リラックス・睡眠のためのローファイビート。毎日新しいミックスを公開 — チャンネル登録お願いします。🔔",
+    "hi": "पढ़ाई, आराम और नींद के लिए लोफ़ाई बीट्स। हर दिन नया मिक्स — सब्सक्राइब करें। 🔔",
 }
 
 
 def _localizations(title: str) -> dict:
-    """Localize only the DESCRIPTION. The title stays in English everywhere:
-    the strong keywords ("Hypnotic", "Dub Techno Mix") are what pull clicks,
-    and viewers of this niche search in English regardless of their locale."""
-    return {lang: {"title": title, "description": desc}
-            for lang, (_phrase, desc) in LOCALES.items()}
+    return {lang: {"title": title, "description": desc} for lang, desc in LOCALES.items()}
 
 
 def _affiliate_block() -> str:
     return os.environ.get("AFFILIATE_BLOCK", "").strip()
 
+
 GENERIC_TAGS = [
-    "dub techno", "techno mix", "deep techno", "minimal techno",
-    "focus music", "study music", "coding music", "work music",
-    "electronic music", "techno 2026", "deep house mix", "productivity music",
-    "no copyright techno", "background music",
+    "lofi hip hop", "lofi", "lofi beats", "lofi hip hop radio", "chillhop",
+    "beats to study to", "beats to relax to", "study music", "study beats",
+    "chill beats", "lofi radio", "relaxing music", "focus music",
+    "no copyright lofi", "background music",
 ]
 
 
@@ -68,29 +54,27 @@ def build_metadata(preset: dict, date: _dt.date, target_seconds: float,
     emoji = preset.get("emoji", "")
     dur = _hours_label(target_seconds)
 
-    title = f"{preset['title']} Mix {emoji} {primary} | Hypnotic Deep Beats | {dur}"
+    title = f"{preset['title']} {emoji} lofi beats to {primary.lower()} to | {dur}"
     title = title[:100].strip()
 
-    description = f"""{preset['title']} {emoji} — {dur} of deep, hypnotic dub techno for {primary.lower()}, coding, studying and late-night work sessions.
+    description = f"""{preset['title']} {emoji} — {dur} of lofi hip hop beats to {primary.lower()} to. Warm Rhodes chords, a soft boom-bap groove and cozy vinyl crackle to keep you in the zone.
 
-Endless dubbed-out chords, a warm rolling sub and that four-to-the-floor pulse — engineered to hold your focus without ever demanding your attention. Press play, sink in, get things done.
+Press play and let it roll in the background while you study, work, read or wind down. It loops seamlessly, so it never breaks the mood.
 
-▶ Best experienced
-• At a moderate volume, as a background pulse.
-• With headphones for the full stereo delay field.
-• On repeat — the mix loops seamlessly.
+☕ Best with
+• A comfortable volume, as a background groove.
+• Headphones for the full warmth and vinyl texture.
+• On repeat — it's built to loop for hours.
 
-🎛️ About this channel
-Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedurally synthesized music and visuals. Nothing is sampled or borrowed, so every track is unique to this channel and completely copyright-safe.
+🎧 About this channel
+Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedurally produced beats and visuals. No samples, no re-uploads, no filler — every track is unique to this channel and completely copyright-safe.
 
-🔔 New mixes daily. Subscribe and turn on notifications.
+🔔 New lofi mixes every single day. Subscribe and turn on notifications.
 
-#dubtechno #techno #{primary.lower().replace(' ', '')} #focusmusic #deeptechno #codingmusic
+#lofi #lofihiphop #{primary.lower().replace(' ', '')} #studybeats #chillhop #lofiradio
 """
 
-    tags = []
-    for w in words:
-        tags.append(w.lower())
+    tags = [w.lower() for w in words]
     tags.append(preset["title"].lower())
     tags.append(preset["id"].replace("_", " "))
     tags.extend(GENERIC_TAGS)
@@ -107,7 +91,7 @@ Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedu
     description = description.strip()
     aff = _affiliate_block()
     if aff:
-        marker = "🎛️ About this channel"
+        marker = "🎧 About this channel"
         description = description.replace(marker, aff + "\n\n" + marker)
 
     return {
@@ -119,7 +103,7 @@ Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedu
         "thumbnail_title": preset["title"],
         "thumbnail_subtitle": f"{primary} • {dur}",
         "localizations": _localizations(title),
-        "playlist": preset["title"] + " Mixes",
+        "playlist": preset["title"],
     }
 
 
@@ -129,20 +113,20 @@ def build_shorts_metadata(preset: dict, date: _dt.date,
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")
 
-    title = f"{preset['title']} {emoji} 60s Deep Loop #shorts"
+    title = f"{preset['title']} {emoji} 60s lofi loop #shorts"
     title = title[:100].strip()
 
-    description = f"""{preset['title']} {emoji} — a 60-second hypnotic loop. {primary} mode: ON.
+    description = f"""{preset['title']} {emoji} — a cozy 60-second lofi loop to {primary.lower()} to.
 
-🎛️ The full-length mix is on the channel — perfect for deep work, coding and study. Subscribe for a new mix every day 🔔
+🎧 The full-length mix is on the channel — perfect for study, work and sleep. Subscribe for a new mix every day 🔔
 
-Every beat on {CHANNEL_NAME} is 100% original, procedurally generated techno — unique to this channel.
+Every beat on {CHANNEL_NAME} is 100% original and procedurally produced — unique to this channel.
 
-#shorts #dubtechno #techno #{primary.lower().replace(' ', '')} #focus #deeptechno
+#shorts #lofi #lofihiphop #{primary.lower().replace(' ', '')} #studybeats #chillhop
 """
 
-    tags = ["shorts", "dub techno", "techno shorts", "deep techno",
-            preset["title"].lower(), primary.lower(), "techno loop", "focus music"]
+    tags = ["shorts", "lofi", "lofi hip hop", "lofi beats", preset["title"].lower(),
+            primary.lower(), "study beats", "chillhop", "lofi loop"]
     return {
         "title": title,
         "description": description.strip(),

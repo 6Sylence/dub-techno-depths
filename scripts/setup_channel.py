@@ -23,24 +23,24 @@ from src import video  # noqa: E402
 from src.utils import load_presets  # noqa: E402
 from src.upload_youtube import _service  # noqa: E402
 
-CHANNEL_NAME = "Dub Techno Depths"
-TAGLINE = "Hypnotic dub techno for deep work, coding & study — daily mixes"
-SIGNATURE_PRESET = "dub_classic"    # dense teal smoke banner art
-TRAILER_VIDEO_ID = "mtjpAI43byE"    # the top-performing first mix
+CHANNEL_NAME = "Lofi Study Lounge"
+TAGLINE = "Lofi hip hop beats to study, relax & sleep to — new mix every day"
+SIGNATURE_PRESET = "lofi_study"     # warm amber banner art
+TRAILER_VIDEO_ID = ""               # set to a video id once one is published
 COUNTRY = "US"
-DESCRIPTION = """Hypnotic dub techno mixes for deep work, coding and late-night study — a new mix every day.
+DESCRIPTION = """Lofi hip hop beats to study, relax and sleep to — a new mix every single day.
 
-Endless dubbed-out chords drifting through ping-pong delays, a warm rolling sub and that steady four-to-the-floor pulse: engineered to hold your focus without ever demanding your attention. Press play, sink in, get things done.
+Warm Rhodes chords, a soft boom-bap groove and cozy vinyl crackle: made to sit gently in the background while you study, work, read or drift off. Press play and stay in the zone.
 
-Every track on this channel is 100% original, procedurally generated music — unique to Dub Techno Depths and completely copyright-safe. No samples, no re-uploads, no filler.
+Every mix on this channel is 100% original, procedurally produced music and visuals — unique to Lofi Study Lounge and completely copyright-safe. No samples, no re-uploads, no filler.
 
 📅 Upload schedule (UTC)
-• Every morning — 1-hour mix to start the session
-• Every afternoon — 2-hour workday mix
+• Every morning — a 1-hour mix to start the day
+• Every afternoon — a 2-hour study session mix
 
 🔔 Subscribe and turn on notifications — tomorrow's mix is already on its way."""
-KEYWORDS = ('"dub techno" "deep techno" "techno mix" "minimal techno" '
-            '"focus music" "coding music" "study music" electronic productivity')
+KEYWORDS = ('"lofi hip hop" "lofi beats" "study music" "chillhop" '
+            '"beats to relax to" "beats to study to" "lofi radio" relax sleep focus')
 
 BANNER_W, BANNER_H = 2560, 1440     # YouTube renders a 1546x423 safe strip centered
 
@@ -109,7 +109,8 @@ def main() -> int:
     ch["keywords"] = KEYWORDS
     ch["country"] = COUNTRY
     ch["defaultLanguage"] = "en"
-    ch["unsubscribedTrailer"] = TRAILER_VIDEO_ID
+    if TRAILER_VIDEO_ID:
+        ch["unsubscribedTrailer"] = TRAILER_VIDEO_ID
     branding.setdefault("image", {})["bannerExternalUrl"] = banner_url
 
     youtube.channels().update(
