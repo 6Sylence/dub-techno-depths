@@ -24,6 +24,8 @@ presets:
       bass_boost: 0.45
       loudness: 1.28
       sidechain: 0.82
+      vocal_gain: 0.6
+      vowel: "ah"
       master_cut: 17000
     visual:
       palette: ["#0a0018", "#2a0640", "#7a1060", "#ff2bd0"]
@@ -51,6 +53,8 @@ presets:
       bass_boost: 0.5
       loudness: 1.3
       sidechain: 0.85
+      vocal_gain: 0.6
+      vowel: "oh"
       master_cut: 17000
     visual:
       palette: ["#00060f", "#041a3a", "#0a4aa0", "#20d0ff"]
@@ -104,6 +108,8 @@ presets:
       bass_boost: 0.4
       loudness: 1.3
       sidechain: 0.86
+      vocal_gain: 0.55
+      vowel: "ah"
       master_cut: 18000
     visual:
       palette: ["#0a0016", "#2a084a", "#6018b0", "#c060ff"]
@@ -159,6 +165,8 @@ presets:
       bass_boost: 0.5
       loudness: 1.3
       sidechain: 0.84
+      vocal_gain: 0.6
+      vowel: "oh"
       master_cut: 17000
     visual:
       palette: ["#0c0016", "#360832", "#8a1060", "#ff4060"]

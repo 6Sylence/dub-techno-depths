@@ -294,19 +294,45 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
         f"[m][2:v]{fx_overlay}[p];"
         f"[p]{pulse_f}vignette=a={vignette_angle:.4f},format=yuv420p[v]"
     )
-    return [
+    cmd = [
         "ffmpeg", "-y",
         "-loop", "1", "-i", bg_png,
         "-loop", "1", "-i", mist_png,
         "-loop", "1", "-i", effect_png,
-        "-i", wav,
+    ]
+    if wav is not None:
+        cmd += ["-i", wav]
+    cmd += [
         "-filter_complex", fc,
-        "-map", "[v]", "-map", "3:a",
+        "-map", "[v]",
         "-c:v", "libx264", "-preset", "veryfast",
-        "-crf", "20", "-maxrate", "4500k", "-bufsize", "9000k",
+        "-crf", "21", "-maxrate", "7000k", "-bufsize", "14000k",   # 4K headroom (bitrate-capped)
         "-r", str(fps), "-t", f"{loop_seconds}",
+    ]
+    if wav is not None:
+        cmd += ["-map", "3:a", "-c:a", "aac", "-b:a", "256k", "-shortest"]
+    else:
+        cmd += ["-an"]
+    cmd += [out_mp4]
+    return cmd
+
+
+def build_mux_loop_cmd(video_loop_mp4: str, audio_wav: str, out_seconds: float,
+                       out_mp4: str) -> list[str]:
+    """Tile a (short, silent) video loop under a full-length audio mix.
+
+    The video is stream-looped to fill ``out_seconds`` (no re-encode) while the
+    long varied audio mix plays over it once — so an hour of video carries an
+    hour of changing music instead of one repeated loop's worth."""
+    return [
+        "ffmpeg", "-y",
+        "-stream_loop", "-1", "-i", video_loop_mp4,
+        "-i", audio_wav,
+        "-map", "0:v", "-map", "1:a",
+        "-t", f"{out_seconds}",
+        "-c:v", "copy",
         "-c:a", "aac", "-b:a", "256k",
-        "-shortest",
+        "-movflags", "+faststart",
         out_mp4,
     ]
 

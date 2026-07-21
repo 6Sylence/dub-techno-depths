@@ -283,6 +283,41 @@ def _impact(sr, rng):
     return _normalize(boom + 0.4 * splash) * 0.8
 
 
+# Vowel formant triples (F1, F2, F3) in Hz — the resonances that make a vowel.
+VOWELS = {
+    "ah": (800.0, 1150.0, 2800.0),
+    "oh": (400.0, 800.0, 2600.0),
+    "eh": (500.0, 1700.0, 2500.0),
+    "oo": (330.0, 800.0, 2400.0),
+}
+
+
+def _formant(x, fc, bw, sr):
+    """Isolate a formant band (a soft spectral peak) — circular, seam-safe."""
+    spec = np.fft.rfft(x)
+    f = np.fft.rfftfreq(x.size, 1.0 / sr)
+    g = np.exp(-((f - fc) / bw) ** 2)
+    return np.fft.irfft(spec * g, n=x.size)
+
+
+def _vocal(sr, freq, dur, rng, vowel="ah"):
+    """Synthetic vocal chop: a glottal saw run through vowel formants, with light
+    vibrato and a breathy onset — a wordless 'aah/ooh' hook, 100% original."""
+    n = int(dur * sr)
+    idx = np.arange(n)
+    t = idx / sr
+    vib = 1.0 + 0.012 * np.sin(2 * np.pi * 5.5 * t)             # vocal vibrato
+    src = _saw(freq, t * vib) + 0.3 * _saw(2 * freq, t * vib)
+    f1, f2, f3 = VOWELS.get(vowel, VOWELS["ah"])
+    voiced = (_formant(src, f1, 90, sr)
+              + 0.7 * _formant(src, f2, 130, sr)
+              + 0.35 * _formant(src, f3, 180, sr))
+    breath = _bandpass(rng.standard_normal(n), 2000, 6000, sr) * np.exp(-idx / (0.02 * sr)) * 0.15
+    env = np.minimum(idx / (0.02 * sr), 1.0) * np.exp(-idx / (0.28 * sr))
+    env *= np.minimum((n - idx) / (0.02 * sr), 1.0)            # release to 0 at end
+    return _normalize((voiced + breath) * env)
+
+
 # --------------------------------------------------------------------------- #
 # Renderer
 # --------------------------------------------------------------------------- #
@@ -324,6 +359,7 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     donkb = np.zeros(n)
     chords = np.zeros(n)
     lead = np.zeros(n)
+    vox = np.zeros(n)
     fx = np.zeros(n)
 
     hat_gain = float(preset.get("hat_gain", 1.0))
@@ -340,7 +376,9 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     riser = _sweep(sr, 2 * beat, rng, up=True)
     impact = _impact(sr, rng)
 
-    donk_cache, chord_cache, sub_cache, pluck_cache = {}, {}, {}, {}
+    donk_cache, chord_cache, sub_cache, pluck_cache, vox_cache = {}, {}, {}, {}, {}
+    vocal_gain = float(preset.get("vocal_gain", 0.0))
+    vowel = preset.get("vowel", "ah")
     for root, qual in prog:
         if (root, qual) not in chord_cache:
             chord_cache[(root, qual)] = _supersaw(sr, root, qual, 4 * beat, chord_cut)
@@ -350,6 +388,11 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     def _pick(pool):
         return pool[int(rng.integers(0, len(pool)))]
+
+    def _vox_note(m):
+        if m not in vox_cache:
+            vox_cache[m] = _vocal(sr, _midi_hz(m), beat * 0.9, rng, vowel)
+        return vox_cache[m]
 
     for b in range(n_bars):
         base = b * bar_s
@@ -403,6 +446,15 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
                     _wrap_add(lead, pluck_cache[m] * float(preset.get("lead_gain", 0.7)),
                               base + step * six)
 
+        # --- vocal chop hook (the 'voices') ------------------------------
+        if vocal_gain > 0 and not is_break:
+            vnotes = [root + 12 + s for s in QUALITIES[qual]]
+            vpattern = ((0, 0), (6, 2), (8, 1), (14, 2)) if b % 2 == 0 else ((4, 1), (10, 0))
+            for step, deg in vpattern:
+                if rng.random() < 0.9:
+                    _wrap_add(vox, _vox_note(vnotes[deg % len(vnotes)]) * vocal_gain,
+                              base + step * six)
+
         # --- transitions: riser into the drop, impact on the drop -------
         if last_bar_of_break:
             _wrap_add(fx, riser, base + 8 * six)
@@ -427,6 +479,10 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     # --- process stems ---------------------------------------------------
     chords = _reverb(_normalize(chords), sr, rng, time=1.6, mix=0.18)
     lead = _reverb(_normalize(lead) if lead.any() else lead, sr, rng, time=1.4, mix=0.22)
+    if vox.any():                                                # vocal chops: slap delay + reverb
+        d = int(0.75 * beat_s)
+        vox = vox + np.roll(_lowpass_fft(vox, 3500, sr), d) * 0.35
+        vox = _reverb(_normalize(vox), sr, rng, time=1.8, mix=0.3)
     fx = _normalize(fx) if fx.any() else fx
 
     # Low end split by role: the deep sub plays WITH the kick and must stay OUT
@@ -442,7 +498,7 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     music = (drums * float(preset.get("kick_bus", 1.0))
              + sub_mix * float(preset.get("low_bus", 1.5))
              + pump * (donk_mix * float(preset.get("donk_bus", 1.2))
-                       + chords * float(preset.get("chord_bus", 0.8)) + lead)
+                       + chords * float(preset.get("chord_bus", 0.8)) + lead + vox)
              + fx * 0.9)
 
     # --- master ----------------------------------------------------------
@@ -466,3 +522,56 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     stereo = np.stack([left, right], axis=1)
     stereo = _normalize(stereo, peak=0.97)
     return (stereo * 32767.0).astype(np.int16)
+
+
+def render_mix(presets: list, total_seconds: float, sr: int = DEFAULT_SR,
+               seed: int | None = None, track_seconds: float = 180.0,
+               max_block: float = 1200.0) -> np.ndarray:
+    """Render a DJ-style MIX of several different tracks (not one repeated loop).
+
+    Each track uses a different preset, a transposed key and its own seed, so the
+    music actually changes every few minutes like the reference 1-3h mixes. The
+    tracks are equal-power crossfaded, and the whole block is wrap-seamless (its
+    tail crossfades into its head) so the pipeline can tile it to any length with
+    no click. Returns int16 (M, 2); M ~= min(total_seconds, max_block).
+    """
+    base_seed = int(seed if seed is not None else 0)
+    block = min(float(total_seconds), max_block)
+    n_tracks = max(1, int(round(block / track_seconds)))
+    xf = int(1.5 * sr)
+
+    segs = []
+    for i in range(n_tracks):
+        p = presets[(base_seed // 5 + i) % len(presets)]
+        key = int((base_seed // 7 + i * 5) % 7) - 3            # transpose -3..+3 semitones
+        ap = dict(p["audio"])
+        ap["progression"] = [[r + key, q] for r, q in ap["progression"]]
+        s = (base_seed + 1 + i * 101) % (2 ** 31)
+        segs.append(render_loop(ap, track_seconds, sr=sr, seed=s).astype(np.float64))
+
+    if n_tracks == 1:
+        return segs[0].astype(np.int16)
+
+    lens = [s.shape[0] for s in segs]
+    total_n = sum(lens) - xf * n_tracks                        # each junction (incl. wrap) overlaps xf
+    fin = np.linspace(0.0, 1.0, xf)[:, None]
+    fout = fin[::-1]
+    out = np.zeros((total_n, 2))
+    pos = 0
+    for seg in segs:
+        seg[:xf] *= fin
+        seg[-xf:] *= fout
+        L = seg.shape[0]
+        end = pos + L
+        if end <= total_n:
+            out[pos:end] += seg
+        else:                                                  # wrap the tail into the head
+            first = total_n - pos
+            out[pos:] += seg[:first]
+            out[: end - total_n] += seg[first:]
+        pos += L - xf
+
+    peak = np.max(np.abs(out))
+    if peak > 32767.0:
+        out *= 32767.0 / peak
+    return out.astype(np.int16)

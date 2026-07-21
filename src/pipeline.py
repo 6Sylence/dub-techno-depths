@@ -92,8 +92,18 @@ def main(argv=None) -> int:
         verify_credentials()
         print("    credentials OK")
 
-    print("[1/6] synthesizing audio…")
-    samples = audio.render_loop(preset["audio"], args.loop_seconds, seed=seed)
+    block_seconds = args.loop_seconds
+    if args.vertical:
+        print("[1/6] synthesizing audio…")
+        samples = audio.render_loop(preset["audio"], args.loop_seconds, seed=seed)
+    else:
+        # A long video is a DJ-style MIX of several different tracks (varying
+        # preset / key / riff), so the music changes every few minutes instead
+        # of one loop repeating for the whole hour.
+        print("[1/6] synthesizing DJ-style mix (multiple tracks)…")
+        samples = audio.render_mix(presets, args.target_seconds, seed=seed)
+        block_seconds = samples.shape[0] / audio.DEFAULT_SR
+        print(f"    varied mix block: {block_seconds / 60:.1f} min")
     write_wav(samples, wav)
 
     fx_kind = preset["visual"].get("effect", "bubbles")
@@ -104,17 +114,33 @@ def main(argv=None) -> int:
     video.build_mist(preset, mist, width=w, height=h, seed=seed)
     video.build_effect_layer(preset, effect, width=w, height=h, seed=seed)
 
-    print("[3/6] encoding seamless animated loop clip…")
-    run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), str(wav),
-                                  preset, args.loop_seconds, str(loop_mp4),
-                                  width=w, height=h))
-
-    if args.target_seconds > args.loop_seconds:
-        print("[4/6] extending to full length…")
-        run(video.build_extend_cmd(str(loop_mp4), args.target_seconds, str(final_mp4)))
+    if args.vertical:
+        print("[3/6] encoding seamless animated loop clip…")
+        run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), str(wav),
+                                      preset, args.loop_seconds, str(loop_mp4),
+                                      width=w, height=h))
+        if args.target_seconds > args.loop_seconds:
+            print("[4/6] extending to full length…")
+            run(video.build_extend_cmd(str(loop_mp4), args.target_seconds, str(final_mp4)))
+        else:
+            print("[4/6] loop already at target length; no extension needed")
+            loop_mp4.replace(final_mp4)
     else:
-        print("[4/6] loop already at target length; no extension needed")
-        loop_mp4.replace(final_mp4)
+        # Encode a short SILENT video loop, tile it under the full-length mix,
+        # then repeat that block to the target length (all copy, no re-encode).
+        vloop = out_dir / "vloop.mp4"
+        block_mp4 = out_dir / "block.mp4"
+        print("[3/6] encoding silent video loop + muxing the full mix…")
+        run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), None,
+                                      preset, args.loop_seconds, str(vloop),
+                                      width=w, height=h))
+        run(video.build_mux_loop_cmd(str(vloop), str(wav), block_seconds, str(block_mp4)))
+        if args.target_seconds > block_seconds + 1:
+            print("[4/6] extending to full length…")
+            run(video.build_extend_cmd(str(block_mp4), args.target_seconds, str(final_mp4)))
+        else:
+            print("[4/6] block already at target length; no extension needed")
+            block_mp4.replace(final_mp4)
 
     if args.vertical:
         print("[5/6] building Shorts metadata…")
