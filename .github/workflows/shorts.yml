@@ -61,10 +61,11 @@ jobs:
       - name: Upload render artifacts
         if: always()
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: short-${{ github.run_id }}
           path: |
             out/metadata.json
             out/result.json
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 2
