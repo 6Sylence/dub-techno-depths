@@ -1,9 +1,8 @@
-name: Daily techno upload
+name: Daily EDM upload
 
-# Techno mixes are consumed while working/focusing, so both slots target the
-# start of work sessions (cron is UTC):
-#   06:30 UTC — EU morning (7:30-8:30 CET), 1h mix.
-#   13:30 UTC — US morning (8:30-9:30 ET), 2h mix for the workday.
+# Two uploads a day (cron is UTC), timed for peak listening windows:
+#   06:30 UTC — EU morning, 1h mix.
+#   13:30 UTC — US morning, 2h mix.
 # Slots use different presets via SLOT so same-day uploads never duplicate.
 on:
   schedule:

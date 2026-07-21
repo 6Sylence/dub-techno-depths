@@ -1,4 +1,4 @@
-"""Checks for the techno engine. Run with: python -m tests.test_audio"""
+"""Checks for the EDM engine. Run with: python -m tests.test_audio"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from src.audio import DEFAULT_SR, render_loop, snap_loop_seconds
 from src.utils import load_presets
 
 PRESET = next(p for p in load_presets("config/presets.yaml")
-              if p["id"] == "deep_dub")["audio"]
+              if p["id"] == "bounce_night")["audio"]
 BPM = PRESET["bpm"]
 
 

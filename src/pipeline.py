@@ -81,7 +81,7 @@ def main(argv=None) -> int:
         args.target_seconds += 60.0 * (2 + seed % 8)
 
     mode = "SHORT" if args.vertical else "long"
-    print(f"== Dub Techno Depths daily run | {date} | preset={preset['id']} "
+    print(f"== Bass Boosted Nation daily run | {date} | preset={preset['id']} "
           f"| seed={seed} | {mode} | loop={args.loop_seconds:.2f}s ==")
 
     # Verify credentials BEFORE the (minutes-long) render so a bad secret fails

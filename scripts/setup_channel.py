@@ -23,24 +23,24 @@ from src import video  # noqa: E402
 from src.utils import load_presets  # noqa: E402
 from src.upload_youtube import _service  # noqa: E402
 
-CHANNEL_NAME = "Deep Techno Depths"
-TAGLINE = "Melodic, deep & dub techno — a new mix every single day"
-SIGNATURE_PRESET = "deep_dub"       # dark cosmic banner art
+CHANNEL_NAME = "Bass Boosted Nation"
+TAGLINE = "Bass boosted EDM, bounce & electro house — a new mix every day"
+SIGNATURE_PRESET = "bounce_night"   # neon banner art
 TRAILER_VIDEO_ID = ""               # set to a video id once one is published
 COUNTRY = "US"
-DESCRIPTION = """Melodic, deep and dub techno — a new mix every single day.
+DESCRIPTION = """Bass-boosted EDM, Melbourne bounce and electro house — a new mix every single day.
 
-Rolling sidechained bass, detuned analog chords swept through a resonant filter and the deep dub-delay echo that keeps it hypnotic: made to roll in the background while you work, focus, drive or lose yourself in the late-night hours.
+Huge kicks, a bouncing donk bass and hard-hitting drops, built to turn up in the car, at the gym or at the party. Crank it up 🔥
 
-Every mix on this channel is 100% original, procedurally produced music and visuals — unique to Deep Techno Depths and completely copyright-safe. No samples, no re-uploads, no filler.
+Every mix on this channel is 100% original, procedurally produced music and visuals — unique to Bass Boosted Nation and completely copyright-safe. No samples, no re-uploads, no filler.
 
 📅 Upload schedule (UTC)
-• Every morning — a 1-hour mix to start the session
-• Every afternoon — a 2-hour deep session mix
+• Every morning — a 1-hour mix
+• Every afternoon — a 2-hour mix
 
 🔔 Subscribe and turn on notifications — tomorrow's mix is already on its way."""
-KEYWORDS = ('"melodic techno" "deep techno" "dub techno" "techno mix" '
-            '"hypnotic techno" "dark techno" "driving techno" focus work night')
+KEYWORDS = ('"bass boosted" "car music" "edm" "melbourne bounce" "electro house" '
+            '"big room" "edm mix" "car music mix" gym workout party')
 
 BANNER_W, BANNER_H = 2560, 1440     # YouTube renders a 1546x423 safe strip centered
 

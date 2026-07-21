@@ -17,11 +17,12 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-# 1440p ("2K"): procedural art costs nothing to render larger, and YouTube
-# assigns >=1440p uploads its higher-quality VP9 transcode — visibly better
-# than the AVC it gives 1080p, even for viewers watching at 1080p.
-WIDTH = 2560
-HEIGHT = 1440
+# True 4K (2160p): the top deep-techno channels all title their mixes "Cinematic
+# 4K Visuals", so we render at 2160p to match that hook honestly. Our visuals are
+# smooth gradients + sparse sprites, so with the encoder's bitrate cap the file
+# barely grows over 1440p while YouTube now serves a real 4K/VP9 stream.
+WIDTH = 3840
+HEIGHT = 2160
 FPS = 24
 
 
@@ -275,13 +276,23 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
                else f"-mod({step}*t/{loop_seconds}\\,{width})")
         fx_overlay = f"overlay=x='{pos}':y=0"
 
+    # Beat pulse: a subtle brightness/saturation throb locked to the track BPM,
+    # so the neon visuals pump with the drop (eval=frame -> per-frame expression).
+    bpm = float(preset.get("audio", {}).get("bpm", 126))
+    bps = bpm / 60.0
+    pulse = float(vis.get("beat_pulse", 0.0))
+    pulse_f = ""
+    if pulse > 0:
+        pulse_f = (f"eq=brightness='{pulse:.3f}*sin(2*PI*{bps:.4f}*t)':"
+                   f"saturation='1+{pulse * 1.5:.3f}*sin(2*PI*{bps:.4f}*t)':eval=frame,")
+
     x_bg = f"mod({width}*t/{loop_seconds}\\,{width})"
     x_mist = f"-mod({2 * width}*t/{loop_seconds}\\,{width})"
     fc = (
         f"[0:v]crop={width}:{height}:x='{x_bg}':y=0[base];"
         f"[base][1:v]overlay=x='{x_mist}':y=0[m];"
         f"[m][2:v]{fx_overlay}[p];"
-        f"[p]vignette=a={vignette_angle:.4f},format=yuv420p[v]"
+        f"[p]{pulse_f}vignette=a={vignette_angle:.4f},format=yuv420p[v]"
     )
     return [
         "ffmpeg", "-y",

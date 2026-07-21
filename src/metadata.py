@@ -1,9 +1,10 @@
-"""Deterministic YouTube metadata for the techno channel.
+"""Deterministic YouTube metadata for the bass-boosted EDM channel.
 
 Reproducible per (preset, date); rotating headline keywords so a repeated preset
 never publishes an identical title. Titles stay English for every locale (the
-hook keywords — "melodic techno", "deep", "mix" — are what pull clicks
-worldwide); only the description is localized.
+hook keywords — "bass boosted", "car music", "EDM" — pull clicks worldwide);
+only the description is localized. The title mirrors the proven high-energy
+formula of the top bass-boosted / car-music channels.
 """
 
 from __future__ import annotations
@@ -11,15 +12,15 @@ from __future__ import annotations
 import datetime as _dt
 import os
 
-CHANNEL_NAME = "Deep Techno Depths"
+CHANNEL_NAME = "Bass Boosted Nation"
 
 LOCALES = {
-    "es": "Techno melódico, deep y dub para concentrarte, trabajar y perderte en la noche. Un mix nuevo cada día — suscríbete. 🔔",
-    "pt": "Techno melódico, deep e dub para focar, trabalhar e mergulhar na noite. Um mix novo todos os dias — inscreva-se. 🔔",
-    "de": "Melodic, Deep und Dub Techno zum Fokussieren, Arbeiten und Abtauchen. Jeden Tag ein neuer Mix — abonnieren. 🔔",
-    "fr": "Techno mélodique, deep et dub pour se concentrer, travailler et plonger dans la nuit. Un nouveau mix chaque jour — abonnez-vous. 🔔",
-    "ru": "Мелодик, дип и даб-техно для концентрации, работы и погружения в ночь. Новый микс каждый день — подписывайтесь. 🔔",
-    "ja": "集中・作業・夜の没入のためのメロディック／ディープ／ダブ・テクノ。毎日新しいミックスを公開 — チャンネル登録お願いします。🔔",
+    "es": "EDM con bass boosted, bounce y electro house para el coche, el gimnasio y la fiesta. Un mix nuevo cada día — suscríbete. 🔔",
+    "pt": "EDM com bass boosted, bounce e electro house para o carro, a academia e a festa. Um mix novo todos os dias — inscreva-se. 🔔",
+    "de": "Bass-Boosted EDM, Bounce und Electro House fürs Auto, Gym und die Party. Jeden Tag ein neuer Mix — abonnieren. 🔔",
+    "fr": "EDM bass boosted, bounce et electro house pour la voiture, la salle et la fête. Un nouveau mix chaque jour — abonnez-vous. 🔔",
+    "ru": "Bass boosted EDM, bounce и electro house для машины, зала и вечеринки. Новый микс каждый день — подписывайтесь. 🔔",
+    "pt-BR": "EDM bass boosted, bounce e electro house pro carro, a academia e a festa. Mix novo todo dia — inscreva-se. 🔔",
 }
 
 
@@ -32,10 +33,10 @@ def _affiliate_block() -> str:
 
 
 GENERIC_TAGS = [
-    "techno", "melodic techno", "deep techno", "dub techno", "hypnotic techno",
-    "techno mix", "melodic techno mix", "deep techno mix", "afterlife",
-    "techno music", "dark techno", "driving techno", "focus music",
-    "music to work to", "no copyright techno", "background music",
+    "bass boosted", "bass boosted music", "car music", "car music mix", "edm",
+    "edm mix", "melbourne bounce", "bounce", "electro house", "big room",
+    "festival mix", "gym music", "workout music", "party mix", "no copyright edm",
+    "bass boosted songs",
 ]
 
 
@@ -53,25 +54,26 @@ def build_metadata(preset: dict, date: _dt.date, target_seconds: float,
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")
     dur = _hours_label(target_seconds)
+    year = date.year
 
-    title = f"{preset['title']} Mix {emoji} {primary} | {dur}"
+    title = f"🔊 {preset['title']} Mix {year} {emoji} {primary} | Best EDM & Bounce"
     title = title[:100].strip()
 
-    description = f"""{preset['title']} Mix {emoji} — {dur} of {preset['title'].lower()} for {primary.lower()}. Rolling sidechained bass, detuned analog chords swept through a resonant filter and the deep dub-delay echo that keeps it hypnotic.
+    description = f"""🔊 {preset['title']} Mix {year} {emoji} — {dur} of bass-boosted EDM, Melbourne bounce and electro house. Huge kicks, a bouncing donk bass and hard-hitting drops made to turn up in the car, the gym or the party.
 
-Press play and let it roll while you work, focus, drive or lose yourself in the late-night hours. It loops seamlessly, so the groove never breaks.
+Crank it up 🔥 It loops seamlessly, so the energy never drops.
 
-🎚️ Best with
-• Headphones or a decent speaker — the sub bass and stereo width carry the vibe.
-• A steady volume, as a hypnotic background groove.
-• On repeat — it's built to roll for hours.
+🚗 Best with
+• A subwoofer or good headphones — this is built for bass.
+• Volume UP. It's a bass-boosted mix.
+• On repeat — hours of drops.
 
 🎧 About this channel
-Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedurally produced tracks and visuals. No samples, no re-uploads, no filler — every track is unique to this channel and completely copyright-safe.
+Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedurally produced music and visuals. No samples, no re-uploads, no filler — every track is unique to this channel and completely copyright-safe.
 
-🔔 New techno mixes every single day. Subscribe and turn on notifications.
+🔔 New bass-boosted mixes every single day. Subscribe and turn on notifications.
 
-#techno #melodictechno #deeptechno #{primary.lower().replace(' ', '')} #technomix #dubtechno
+#bassboosted #carmusic #edm #{primary.lower().replace(' ', '')} #bounce #electrohouse
 """
 
     tags = [w.lower() for w in words]
@@ -113,20 +115,20 @@ def build_shorts_metadata(preset: dict, date: _dt.date,
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")
 
-    title = f"{preset['title']} {emoji} 60s techno loop #shorts"
+    title = f"🔊 {preset['title']} {emoji} Bass Boosted #shorts"
     title = title[:100].strip()
 
-    description = f"""{preset['title']} {emoji} — a 60-second {preset['title'].lower()} loop for {primary.lower()}.
+    description = f"""🔊 {preset['title']} {emoji} — a 60-second bass-boosted EDM loop to {primary.lower()}.
 
-🎧 The full-length mix is on the channel — perfect for focus, work and late nights. Subscribe for a new mix every day 🔔
+🎧 The full-length mix is on the channel — perfect for the car, the gym and the party. Subscribe for a new mix every day 🔔
 
 Every track on {CHANNEL_NAME} is 100% original and procedurally produced — unique to this channel.
 
-#shorts #techno #melodictechno #deeptechno #{primary.lower().replace(' ', '')} #technomix
+#shorts #bassboosted #carmusic #edm #{primary.lower().replace(' ', '')} #bounce
 """
 
-    tags = ["shorts", "techno", "melodic techno", "deep techno", preset["title"].lower(),
-            primary.lower(), "techno mix", "dub techno", "techno loop"]
+    tags = ["shorts", "bass boosted", "car music", "edm", preset["title"].lower(),
+            primary.lower(), "bounce", "electro house", "edm mix"]
     return {
         "title": title,
         "description": description.strip(),
