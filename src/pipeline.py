@@ -128,12 +128,15 @@ def main(argv=None) -> int:
     else:
         # Encode a short SILENT video loop, tile it under the full-length mix,
         # then repeat that block to the target length (all copy, no re-encode).
+        # The visual is a slow scroll, so a short 90 s loop at 20 fps looks the
+        # same but keeps the (expensive) 4K encode fast on CI's 2-vCPU runners.
         vloop = out_dir / "vloop.mp4"
         block_mp4 = out_dir / "block.mp4"
+        vid_secs = 90.0
         print("[3/6] encoding silent video loop + muxing the full mix…")
         run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), None,
-                                      preset, args.loop_seconds, str(vloop),
-                                      width=w, height=h))
+                                      preset, vid_secs, str(vloop),
+                                      width=w, height=h, fps=20))
         run(video.build_mux_loop_cmd(str(vloop), str(wav), block_seconds, str(block_mp4)))
         if args.target_seconds > block_seconds + 1:
             print("[4/6] extending to full length…")

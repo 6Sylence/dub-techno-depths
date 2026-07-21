@@ -305,7 +305,7 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
     cmd += [
         "-filter_complex", fc,
         "-map", "[v]",
-        "-c:v", "libx264", "-preset", "veryfast",
+        "-c:v", "libx264", "-preset", "ultrafast",                 # 4K on 2-vCPU CI: speed first
         "-crf", "21", "-maxrate", "7000k", "-bufsize", "14000k",   # 4K headroom (bitrate-capped)
         "-r", str(fps), "-t", f"{loop_seconds}",
     ]
