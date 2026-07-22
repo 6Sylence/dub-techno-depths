@@ -167,22 +167,23 @@ def _eq(x, sr, bass_boost=0.35):
 # --------------------------------------------------------------------------- #
 # Instruments
 # --------------------------------------------------------------------------- #
-def _kick(sr, rng, punch=1.2, sub=0.7, sat=0.6):
+def _kick(sr, rng, punch=1.2, sub=0.95, sat=0.7):
     """Big EDM kick: snappy click, fast pitch drop, and a rounded sub tail so it
-    reads huge on a subwoofer."""
-    n = int(0.5 * sr)
+    reads huge on a subwoofer. Bigger body + tail + click = more 'bombo'."""
+    n = int(0.55 * sr)
     idx = np.arange(n)
     f0 = 150.0 + 140.0 * punch
     fb = 46.0
     pitch = fb + (f0 - fb) * np.exp(-idx / (0.016 * sr))
-    body = np.sin(2 * np.pi * np.cumsum(pitch) / sr) * np.exp(-idx / (0.11 * sr))
-    tail = np.sin(2 * np.pi * fb * idx / sr) * np.exp(-idx / (0.19 * sr)) * sub
-    click = _highpass_fft(rng.standard_normal(n), 3500, sr) * np.exp(-idx / (0.003 * sr))
-    k = body + tail + 0.55 * click
-    drive = 1.8 + 2.4 * sat
+    body = np.sin(2 * np.pi * np.cumsum(pitch) / sr) * np.exp(-idx / (0.13 * sr))
+    tail = np.sin(2 * np.pi * fb * idx / sr) * np.exp(-idx / (0.24 * sr)) * sub
+    click = _highpass_fft(rng.standard_normal(n), 3200, sr) * np.exp(-idx / (0.004 * sr))
+    k = body + tail + 0.8 * click
+    drive = 2.0 + 2.6 * sat
     k = np.tanh(k * drive) / np.tanh(drive)
     k *= np.minimum(idx / (0.0015 * sr), 1.0)     # 1.5 ms attack: no hard step at t=0
-    return _lowpass_fft(k, 5200, sr) * 0.95
+    k *= np.minimum((n - idx) / (0.012 * sr), 1.0)  # release to 0 at end (seam-safe)
+    return _lowpass_fft(k, 5400, sr) * 1.0
 
 
 def _donk(sr, freq, dur, rng, drive=1.8):
@@ -244,9 +245,10 @@ def _leadsaw(sr, freq, dur, detune=0.016):
     t = idx / sr
     tone = (_saw(freq * (1 - detune), t) + _saw(freq, t) + _saw(freq * (1 + detune), t)
             + 0.5 * _saw(freq * 0.5, t))                       # sub octave for body
+    tone = np.tanh(tone * 1.6)                                 # drive = aggressive grit
     env = np.minimum(idx / (0.004 * sr), 1.0) * np.exp(-idx / (0.32 * sr))
     env *= np.minimum((n - idx) / (0.008 * sr), 1.0)           # release to 0 at end
-    return _reso_lp(tone * env, freq * 4 + 2200, sr, res=0.2) / 3.5
+    return _reso_lp(tone * env, freq * 4 + 2600, sr, res=0.25) / 3.5
 
 
 def _clap(sr, rng):
@@ -381,7 +383,7 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     # Precompute voices once (with jitter on placement) -> fast render.
     kick = _kick(sr, rng, punch=float(preset.get("kick_punch", 1.2)),
-                 sub=float(preset.get("kick_sub", 0.7))) * float(preset.get("kick_gain", 1.0))
+                 sub=float(preset.get("kick_sub", 0.95))) * float(preset.get("kick_gain", 1.3))
     clap_pool = [_clap(sr, rng) for _ in range(4)]
     snare_pool = [_snare(sr, rng) for _ in range(4)]
     hat_c_pool = [_hat(sr, rng, open_=False) for _ in range(8)]
@@ -390,7 +392,7 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     impact = _impact(sr, rng)
 
     donk_cache, chord_cache, sub_cache, pluck_cache, vox_cache, sawlead_cache = {}, {}, {}, {}, {}, {}
-    saw_gain = float(preset.get("saw_lead_gain", 0.55))
+    saw_gain = float(preset.get("saw_lead_gain", 0.72))
     vocal_gain = float(preset.get("vocal_gain", 0.0))
     vowel = preset.get("vowel", "ah")
     for root, qual in prog:
@@ -410,16 +412,25 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
 
     lead_gain_base = float(preset.get("lead_gain", 0.7))
 
-    # A catchy 2-bar lead motif that REPEATS across the track (transposed to each
-    # bar's chord) — the memorable topline hook that defines the car-music EDM
-    # sound. Seeded, so every track in a mix gets a different hook.
+    # A catchy topline HOOK: one strong rhythmic phrase that REPEATS every bar
+    # (transposed to each chord). Hammering repetition + a clear rhythm is what
+    # reads as memorable/catchy in car-music EDM. Bar 2 lifts a step for motion.
     mrng = np.random.default_rng((seed or 0) + 4242)
+    rhythms = [
+        [0, 2, 4, 6, 8, 12],
+        [0, 3, 6, 8, 10, 14],
+        [0, 2, 6, 8, 10, 12, 14],
+        [0, 4, 6, 8, 12, 14],
+        [0, 2, 4, 8, 10, 12],
+    ]
+    rh = rhythms[int(mrng.integers(0, len(rhythms)))]
+    contour = [int(np.clip(int(mrng.integers(0, 3)) + d, 0, 6))
+               for d in (0, 1, 2, 1, 3, 2, 1, 0)]           # rises then resolves
     motif = []
-    mi = int(mrng.integers(0, 4))
-    for st in range(32):                                # 32 sixteenths = 2 bars
-        if mrng.random() < 0.5:
-            mi = int(np.clip(mi + mrng.integers(-2, 3), 0, 6))
-            motif.append((st, mi))
+    for bar_i in range(2):                                  # 2-bar phrase (bar 2 lifted)
+        for j, step in enumerate(rh):
+            deg = int(np.clip(contour[j % len(contour)] + (1 if bar_i else 0), 0, 6))
+            motif.append((bar_i * 16 + step, deg))
 
     for b in range(n_bars):
         base = b * bar_s
@@ -526,8 +537,8 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     sub_mix = sub_mix + _lowpass_fft(subb, 85, sr) * (1.0 * bass_boost)
     donk_mix = donkb * float(preset.get("donk_gain", 1.0))
 
-    music = (drums * float(preset.get("kick_bus", 1.0))
-             + sub_mix * float(preset.get("low_bus", 1.5))
+    music = (drums * float(preset.get("kick_bus", 1.05))
+             + sub_mix * float(preset.get("low_bus", 1.6))
              + pump * (donk_mix * float(preset.get("donk_bus", 1.2))
                        + chords * float(preset.get("chord_bus", 0.8)) + lead + vox)
              + fx * 0.9)
