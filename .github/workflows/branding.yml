@@ -30,7 +30,9 @@ jobs:
 
       - name: Upload banner artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true   # artifact storage quota must never fail branding
         with:
           name: banner
           path: out/banner.jpg
-          retention-days: 7
+          if-no-files-found: ignore
+          retention-days: 2
