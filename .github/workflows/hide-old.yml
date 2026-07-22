@@ -1,0 +1,40 @@
+name: Hide old videos
+
+# Manual: set the channel's currently-PUBLIC videos to private (or unlisted).
+# Only public videos are touched, so newer unlisted/private uploads are left
+# alone. Nothing is deleted — flip a video back to public in Studio any time.
+on:
+  workflow_dispatch:
+    inputs:
+      privacy:
+        description: "Hide to: private or unlisted"
+        required: false
+        default: "private"
+      keep_ids:
+        description: "Comma-separated video ids to never touch (optional)"
+        required: false
+        default: ""
+
+jobs:
+  hide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Hide old public videos
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          HIDE_PRIVACY: ${{ github.event.inputs.privacy }}
+          KEEP_IDS: ${{ github.event.inputs.keep_ids }}
+        run: python scripts/hide_old_videos.py
