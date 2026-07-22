@@ -18,6 +18,14 @@ on:
         description: "Render only, do not upload (true/false)"
         required: false
         default: "false"
+      ai_tracks:
+        description: "AI tracks to generate this run (blank = default)"
+        required: false
+        default: ""
+      ai_track_seconds:
+        description: "Seconds per AI track (blank = default)"
+        required: false
+        default: ""
 
 concurrency:
   group: daily-upload
@@ -50,8 +58,8 @@ jobs:
           # the key is missing or the API errors, so the upload never breaks.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
-          AI_TRACKS: ${{ vars.AI_TRACKS || '4' }}
-          AI_TRACK_SECONDS: ${{ vars.AI_TRACK_SECONDS || '240' }}
+          AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '4' }}
+          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '240' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || (github.event.schedule == '30 13 * * *' && '7200' || '3600') }}
           DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
