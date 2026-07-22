@@ -47,37 +47,62 @@ def _vertical_gradient(palette: list[str], h: int) -> np.ndarray:
 # is recognizable at a glance (like the big bass-boosted channels' logos).
 BRAND_LINE1 = "BASS BOOSTED"
 BRAND_LINE2 = "N A T I O N"
-BRAND_GLOW = (255, 45, 150)
+BRAND_GLOW = (255, 40, 120)
+
+
+def _slant(im: "Image.Image", k: float = 0.28) -> "Image.Image":
+    """Shear an image for an aggressive italic lean."""
+    w, h = im.size
+    return im.transform((w + int(h * k), h), Image.AFFINE, (1, -k, 0, 0, 1, 0),
+                        resample=Image.BICUBIC)
+
+
+def _wordmark(txt, font, fill, stroke, sw, k=0.28) -> "Image.Image":
+    """Render outlined text and slant it."""
+    probe = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
+    b = probe.textbbox((0, 0), txt, font=font, stroke_width=sw)
+    im = Image.new("RGBA", (b[2] - b[0] + sw * 2 + 20, b[3] - b[1] + sw * 2 + 20), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((10 - b[0], 10 - b[1]), txt, font=font, fill=fill,
+                            stroke_width=sw, stroke_fill=stroke)
+    return _slant(im, k)
 
 
 def _brand_overlay(img: "Image.Image") -> "Image.Image":
-    """Stamp the fixed neon brand (EQ emblem + wordmark) top-centre with a glow."""
+    """Aggressive bass-music brand: a subwoofer emblem with radiating bass waves,
+    a slanted heavy 'BASS BOOSTED' wordmark with a thick neon outline, flanking
+    chevrons and 'NATION' — same on every upload so the channel is recognizable."""
     W, H = img.size
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     cx = W // 2
-    r = int(H * 0.058)
-    ey = int(H * 0.055) + r
-    d.ellipse([cx - r, ey - r, cx + r, ey + r], outline=BRAND_GLOW, width=max(3, W // 420))
-    bars = [0.45, 0.75, 1.0, 0.62, 0.85]
-    bw, gap = int(r * 0.22), int(r * 0.12)
-    x0 = cx - (len(bars) * bw + (len(bars) - 1) * gap) // 2
-    for i, hh in enumerate(bars):
-        bh = int(r * 1.15 * hh)
-        x = x0 + i * (bw + gap)
-        d.rounded_rectangle([x, ey - bh // 2, x + bw, ey + bh // 2],
-                            radius=bw // 2, fill=(255, 255, 255, 255))
-    f1, f2 = _load_font(int(H * 0.072)), _load_font(int(H * 0.030))
-    wy = ey + r + int(H * 0.02)
-    for txt, font, y, fill in ((BRAND_LINE1, f1, wy, (255, 255, 255, 255)),
-                               (BRAND_LINE2, f2, wy + int(H * 0.085), BRAND_GLOW + (255,))):
-        b = d.textbbox((0, 0), txt, font=font)
-        d.text((cx - (b[2] - b[0]) // 2, y), txt, font=font, fill=fill)
-    glow = layer.filter(ImageFilter.GaussianBlur(max(4, W // 300)))
+    r = int(H * 0.055)
+    ey = int(H * 0.045) + r
+    for k in (3, 2, 1):                                        # radiating bass waves
+        rr, wdt = int(r * (1.35 + 0.42 * k)), max(3, W // 460)
+        d.arc([cx - rr, ey - rr, cx + rr, ey + rr], -42, 42, fill=BRAND_GLOW, width=wdt)
+        d.arc([cx - rr, ey - rr, cx + rr, ey + rr], 138, 222, fill=BRAND_GLOW, width=wdt)
+    d.ellipse([cx - r, ey - r, cx + r, ey + r], fill=(255, 255, 255, 255))     # rim
+    ic = int(r * 0.62); d.ellipse([cx - ic, ey - ic, cx + ic, ey + ic], fill=BRAND_GLOW + (255,))
+    dc = int(r * 0.22); d.ellipse([cx - dc, ey - dc, cx + dc, ey + dc], fill=(255, 255, 255, 255))
+    f1, f2 = _load_font(int(H * 0.088)), _load_font(int(H * 0.032))
+    wm = _wordmark(BRAND_LINE1, f1, (255, 255, 255, 255), BRAND_GLOW + (255,), max(3, int(H * 0.008)))
+    wm = wm.resize((min(wm.width, int(W * 0.62)), int(H * 0.10)))
+    wy = ey + r + int(H * 0.012)
+    layer.alpha_composite(wm, (cx - wm.width // 2, wy))
+    chy = wy + wm.height // 2                                  # flanking chevrons
+    for sgn in (-1, 1):
+        bx = cx + sgn * (wm.width // 2 + int(W * 0.03))
+        for j in range(3):
+            off, s = sgn * j * int(W * 0.014), int(H * 0.032)
+            d.line([(bx + off, chy - s), (bx + off + sgn * s, chy), (bx + off, chy + s)],
+                   fill=BRAND_GLOW, width=max(3, W // 500))
+    tag = _wordmark(BRAND_LINE2, f2, BRAND_GLOW + (255,), (0, 0, 0, 0), 0)
+    layer.alpha_composite(tag, (cx - tag.width // 2, wy + wm.height - int(H * 0.004)))
+    glow = layer.filter(ImageFilter.GaussianBlur(max(5, W // 260)))
     out = img.convert("RGBA")
-    out = Image.alpha_composite(out, glow)       # colored halo
-    out = Image.alpha_composite(out, glow)       # double bloom
-    out = Image.alpha_composite(out, layer)      # crisp mark on top
+    out = Image.alpha_composite(out, glow)
+    out = Image.alpha_composite(out, glow)
+    out = Image.alpha_composite(out, layer)
     return out.convert("RGB")
 
 
