@@ -15,7 +15,7 @@ import json
 import os
 from pathlib import Path
 
-from . import audio, metadata, video
+from . import ai_music, audio, metadata, video
 from .utils import daily_seed, load_presets, run, select_preset, write_wav
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -92,19 +92,39 @@ def main(argv=None) -> int:
         verify_credentials()
         print("    credentials OK")
 
+    audio_path = wav
     block_seconds = args.loop_seconds
+    music_engine = (_env("MUSIC_ENGINE", "ai") or "ai").lower()
+    primary = preset["theme_words"][date.timetuple().tm_yday % len(preset["theme_words"])]
+
+    def _procedural_mix():
+        s = audio.render_mix(presets, args.target_seconds, seed=seed)
+        write_wav(s, wav)
+        print(f"    varied mix block: {s.shape[0] / audio.DEFAULT_SR / 60:.1f} min")
+        return s.shape[0] / audio.DEFAULT_SR
+
     if args.vertical:
+        # Shorts stay procedural (a 60 s clip isn't worth AI credits).
         print("[1/6] synthesizing audio…")
-        samples = audio.render_loop(preset["audio"], args.loop_seconds, seed=seed)
+        write_wav(audio.render_loop(preset["audio"], args.loop_seconds, seed=seed), wav)
+    elif music_engine == "ai" and ai_music.available():
+        n_tr = int(_env("AI_TRACKS", "4") or "4")
+        ts = float(_env("AI_TRACK_SECONDS", "240") or "240")
+        print(f"[1/6] generating AI music (ElevenLabs Music): {n_tr} x {ts:.0f}s…")
+        files = ai_music.generate_tracks(preset, primary, n_tr, ts, out_dir, seed=seed)
+        if files:
+            audio_path = out_dir / "audio.m4a"
+            run(video.build_audio_concat_cmd([str(f) for f in files], str(audio_path)))
+            block_seconds = None                       # unknown length -> mux with -shortest
+        else:
+            print("    AI produced no tracks; falling back to the procedural mix")
+            block_seconds = _procedural_mix()
     else:
-        # A long video is a DJ-style MIX of several different tracks (varying
-        # preset / key / riff), so the music changes every few minutes instead
-        # of one loop repeating for the whole hour.
-        print("[1/6] synthesizing DJ-style mix (multiple tracks)…")
-        samples = audio.render_mix(presets, args.target_seconds, seed=seed)
-        block_seconds = samples.shape[0] / audio.DEFAULT_SR
-        print(f"    varied mix block: {block_seconds / 60:.1f} min")
-    write_wav(samples, wav)
+        if music_engine == "ai":
+            print("[1/6] ELEVENLABS_API_KEY not set; using the procedural mix")
+        else:
+            print("[1/6] synthesizing DJ-style mix (multiple tracks)…")
+        block_seconds = _procedural_mix()
 
     fx_kind = preset["visual"].get("effect", "bubbles")
     print(f"[2/6] rendering animated layers (background + mist + {fx_kind})…")
@@ -137,8 +157,8 @@ def main(argv=None) -> int:
         run(video.build_loop_clip_cmd(str(bg), str(mist), str(effect), None,
                                       preset, vid_secs, str(vloop),
                                       width=w, height=h, fps=20))
-        run(video.build_mux_loop_cmd(str(vloop), str(wav), block_seconds, str(block_mp4)))
-        if args.target_seconds > block_seconds + 1:
+        run(video.build_mux_loop_cmd(str(vloop), str(audio_path), block_seconds, str(block_mp4)))
+        if block_seconds is None or args.target_seconds > block_seconds + 1:
             print("[4/6] extending to full length…")
             run(video.build_extend_cmd(str(block_mp4), args.target_seconds, str(final_mp4)))
         else:

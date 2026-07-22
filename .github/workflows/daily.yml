@@ -46,6 +46,12 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          # AI music (ElevenLabs Music). Falls back to the procedural engine if
+          # the key is missing or the API errors, so the upload never breaks.
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          AI_TRACKS: ${{ vars.AI_TRACKS || '4' }}
+          AI_TRACK_SECONDS: ${{ vars.AI_TRACK_SECONDS || '240' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || (github.event.schedule == '30 13 * * *' && '7200' || '3600') }}
           DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}

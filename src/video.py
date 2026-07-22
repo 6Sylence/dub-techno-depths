@@ -318,24 +318,47 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
     return cmd
 
 
-def build_mux_loop_cmd(video_loop_mp4: str, audio_wav: str, out_seconds: float,
+def build_mux_loop_cmd(video_loop_mp4: str, audio_file: str, out_seconds: float | None,
                        out_mp4: str) -> list[str]:
     """Tile a (short, silent) video loop under a full-length audio mix.
 
-    The video is stream-looped to fill ``out_seconds`` (no re-encode) while the
-    long varied audio mix plays over it once — so an hour of video carries an
-    hour of changing music instead of one repeated loop's worth."""
-    return [
+    The video is stream-looped while the long audio plays over it once. Pass
+    ``out_seconds`` to cut to a known length, or None to end exactly with the
+    audio (``-shortest``, used when the audio length isn't known up front)."""
+    cmd = [
         "ffmpeg", "-y",
         "-stream_loop", "-1", "-i", video_loop_mp4,
-        "-i", audio_wav,
+        "-i", audio_file,
         "-map", "0:v", "-map", "1:a",
-        "-t", f"{out_seconds}",
+    ]
+    cmd += (["-t", f"{out_seconds}"] if out_seconds else ["-shortest"])
+    cmd += [
         "-c:v", "copy",
         "-c:a", "aac", "-b:a", "256k",
         "-movflags", "+faststart",
         out_mp4,
     ]
+    return cmd
+
+
+def build_audio_concat_cmd(audio_files: list[str], out_file: str,
+                           crossfade: float = 2.0) -> list[str]:
+    """Stitch several tracks into one continuous audio file with short
+    equal-power crossfades between them (a DJ-style blend)."""
+    if len(audio_files) == 1:
+        return ["ffmpeg", "-y", "-i", audio_files[0],
+                "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", out_file]
+    inputs = []
+    for f in audio_files:
+        inputs += ["-i", f]
+    parts, prev = [], "0:a"
+    for i in range(1, len(audio_files)):
+        label = "aout" if i == len(audio_files) - 1 else f"x{i}"
+        parts.append(f"[{prev}][{i}:a]acrossfade=d={crossfade}:c1=tri:c2=tri[{label}]")
+        prev = label
+    return ["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(parts),
+            "-map", "[aout]", "-c:a", "aac", "-b:a", "256k",
+            "-movflags", "+faststart", out_file]
 
 
 def build_extend_cmd(loop_mp4: str, target_seconds: float, out_mp4: str) -> list[str]:
