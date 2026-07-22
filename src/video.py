@@ -15,7 +15,7 @@ import math
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # 1440p ("2K"): our visuals are a smooth scrolling gradient, so 1440p looks
 # essentially identical to 4K here while the per-frame 4K compositing (crop +
@@ -43,12 +43,76 @@ def _vertical_gradient(palette: list[str], h: int) -> np.ndarray:
     return out
 
 
+def _render_synthwave(vis: dict, width: int, height: int, seed: int | None) -> np.ndarray:
+    """A synthwave scene: sunset sky + scanline sun + starfield + neon perspective
+    grid. Returns a single-tile (H, W, 3) uint8 image (rendered static; the video
+    keeps it still and animates the mist/stars + beat pulse over it)."""
+    rng = np.random.default_rng(seed)
+    pal = vis["palette"]
+    sky_top, sky_mid = _hex_to_rgb(pal[0]), _hex_to_rgb(pal[1])
+    horizon, accent = _hex_to_rgb(pal[2]), _hex_to_rgb(pal[3])
+    sun_top = np.clip(accent * 0.35 + np.array([255.0, 235.0, 150.0]) * 0.65, 0, 255)
+    hy = int(height * 0.60)
+
+    img = np.zeros((height, width, 3), float)
+    for y in range(hy):                                        # sky gradient
+        t = y / max(hy, 1)
+        c = (sky_top * (1 - t / 0.6) + sky_mid * (t / 0.6) if t < 0.6
+             else sky_mid * (1 - (t - 0.6) / 0.4) + horizon * ((t - 0.6) / 0.4))
+        img[y] = c
+    img[hy:] = _hex_to_rgb(pal[0]) * 0.5                        # dark ground
+    base = Image.fromarray(np.clip(img, 0, 255).astype("uint8"), "RGB")
+
+    d = ImageDraw.Draw(base)                                    # starfield
+    for _ in range(int(width * height / 4200)):
+        x, y = int(rng.integers(0, width)), int(rng.integers(0, int(hy * 0.92)))
+        b = int(255 * rng.uniform(0.3, 0.9)); s = 0 if rng.random() < 0.85 else 1
+        d.ellipse([x - s, y - s, x + s, y + s], fill=(b, b, b))
+
+    glow = Image.new("RGB", (width, height), (0, 0, 0)); gd = ImageDraw.Draw(glow)
+    cx, r = width // 2, int(height * 0.30)                      # scanline sun
+    for i in range(r, 0, -1):
+        t = i / r
+        gd.ellipse([cx - i, hy - i, cx + i, hy + i],
+                   fill=tuple(int(sun_top[k] * (1 - t) + horizon[k] * t) for k in range(3)))
+    for k in range(18):
+        yy = hy - r + int(r * 0.18) + int(k * (r * 1.05) / 18)
+        if yy > hy - r:
+            gd.rectangle([cx - r, yy, cx + r, yy + 1 + int(k * 0.55)], fill=(0, 0, 0))
+    glow = glow.filter(ImageFilter.GaussianBlur(max(1, width // 640)))
+    out = np.clip(np.asarray(base, float) + np.asarray(glow, float) * 0.9, 0, 255)
+
+    grid = Image.new("RGB", (width, height), (0, 0, 0)); gr = ImageDraw.Draw(grid)
+    gc = tuple(int(c) for c in accent); vx, vy = width // 2, hy
+    for gx in range(-width, 2 * width, max(24, width // 40)):   # converging verticals
+        gr.line([(gx, height), (vx, vy)], fill=gc, width=2)
+    dep = 0.0
+    for i in range(1, 30):                                      # perspective horizontals
+        dep += i * 0.8
+        yy = hy + int((height - hy) * (1 - 1 / (1 + dep * 0.045)))
+        if yy < height:
+            gr.line([(0, yy), (width, yy)], fill=gc, width=2)
+    grid = grid.filter(ImageFilter.GaussianBlur(1))
+    garr = np.asarray(grid, float); garr[:hy] = 0
+    out = np.clip(out + garr, 0, 255)
+
+    g = float(vis.get("grain", 0.04)) * 100.0
+    if g > 0:
+        out = np.clip(out + rng.normal(0.0, g, (height, width, 1)), 0, 255)
+    return out.astype("uint8")
+
+
 def build_background(preset: dict, path: str | Path,
                      width: int = WIDTH, height: int = HEIGHT,
                      seed: int | None = None) -> Path:
-    """Render a horizontally-tileable gradient background (width*2 wide)."""
-    rng = np.random.default_rng(seed)
+    """Render the background. Synthwave presets get a full static neon scene (one
+    tile wide); everything else gets the horizontally-tileable gradient."""
     vis = preset["visual"]
+    if vis.get("style") == "synthwave":
+        out = Path(path)
+        Image.fromarray(_render_synthwave(vis, width, height, seed), "RGB").save(out, "PNG")
+        return out
+    rng = np.random.default_rng(seed)
     tile_w = width          # motion tile == one screen width
     full_w = width * 2      # image holds two identical tiles for seamless scroll
 
@@ -287,7 +351,10 @@ def build_loop_clip_cmd(bg_png: str, mist_png: str, effect_png: str,
         pulse_f = (f"eq=brightness='{pulse:.3f}*sin(2*PI*{bps:.4f}*t)':"
                    f"saturation='1+{pulse * 1.5:.3f}*sin(2*PI*{bps:.4f}*t)':eval=frame,")
 
-    x_bg = f"mod({width}*t/{loop_seconds}\\,{width})"
+    # Synthwave scenes are a single static tile (no horizontal scroll); the
+    # motion comes from the drifting mist/stars overlays and the beat pulse.
+    static_bg = vis.get("style") == "synthwave"
+    x_bg = "0" if static_bg else f"mod({width}*t/{loop_seconds}\\,{width})"
     x_mist = f"-mod({2 * width}*t/{loop_seconds}\\,{width})"
     fc = (
         f"[0:v]crop={width}:{height}:x='{x_bg}':y=0[base];"
@@ -399,16 +466,22 @@ def build_thumbnail(preset: dict, title: str, subtitle: str, path: str | Path,
     tw, th = 1280, 720
     tmp = Path(path)
     bg_p = tmp.with_suffix(".bg.png")
-    mist_p = tmp.with_suffix(".mist.png")
-    fx_p = tmp.with_suffix(".fx.png")
     build_background(preset, bg_p, width=tw, height=th, seed=seed)
-    build_mist(preset, mist_p, width=tw, height=th, seed=seed)
-    build_effect_layer(preset, fx_p, width=tw, height=th, seed=seed)
 
-    img = Image.open(bg_p).convert("RGBA").crop((tw // 3, 0, tw // 3 + tw, th))
-    mist = Image.open(mist_p).crop((tw // 2, 0, tw // 2 + tw, th))
-    fx = Image.open(fx_p).crop((0, 0, tw, th))
-    img = Image.alpha_composite(Image.alpha_composite(img, mist), fx)
+    if preset["visual"].get("style") == "synthwave":
+        # The synthwave scene is a complete, single-tile still — use it directly.
+        img = Image.open(bg_p).convert("RGBA")
+        extra = ()
+    else:
+        mist_p = tmp.with_suffix(".mist.png")
+        fx_p = tmp.with_suffix(".fx.png")
+        build_mist(preset, mist_p, width=tw, height=th, seed=seed)
+        build_effect_layer(preset, fx_p, width=tw, height=th, seed=seed)
+        img = Image.open(bg_p).convert("RGBA").crop((tw // 3, 0, tw // 3 + tw, th))
+        mist = Image.open(mist_p).crop((tw // 2, 0, tw // 2 + tw, th))
+        fx = Image.open(fx_p).crop((0, 0, tw, th))
+        img = Image.alpha_composite(Image.alpha_composite(img, mist), fx)
+        extra = (mist_p, fx_p)
 
     # Darken the lower band for text legibility (soft vertical ramp).
     grad = np.zeros((th, tw), dtype=np.uint8)
@@ -441,6 +514,6 @@ def build_thumbnail(preset: dict, title: str, subtitle: str, path: str | Path,
 
     out = Path(path)
     img.save(out, "JPEG", quality=92)
-    for p in (bg_p, mist_p, fx_p):
+    for p in (bg_p, *extra):
         p.unlink(missing_ok=True)
     return out
