@@ -1,13 +1,15 @@
 name: Daily EDM upload
 
-# Two uploads a day (cron is UTC), timed for peak listening windows:
-#   06:30 UTC — EU morning, 1h mix.
-#   13:30 UTC — US morning, 2h mix.
-# Slots use different presets via SLOT so same-day uploads never duplicate.
+# One upload a day (cron is UTC) at a peak listening window.
+#
+# AI-music budget (ElevenLabs Creator): 100,000 credits/month and Eleven Music
+# costs 900 credits/min -> ~111 min of generated music per month. So we generate
+# ~3.5 min of fresh music per day (1 track x 210 s = 105 min/month, ~5% buffer)
+# and tile it to a 20-min video. Bump AI_TRACK_SECONDS / add a second cron only
+# on a bigger ElevenLabs plan (Pro = 500k credits ≈ 555 min/month).
 on:
   schedule:
-    - cron: "30 6 * * *"
-    - cron: "30 13 * * *"
+    - cron: "0 16 * * *"
   workflow_dispatch:
     inputs:
       preset:
@@ -18,6 +20,10 @@ on:
         description: "Render only, do not upload (true/false)"
         required: false
         default: "false"
+      privacy:
+        description: "public / unlisted / private (blank = default)"
+        required: false
+        default: ""
       ai_tracks:
         description: "AI tracks to generate this run (blank = default)"
         required: false
@@ -58,12 +64,12 @@ jobs:
           # the key is missing or the API errors, so the upload never breaks.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
-          AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '4' }}
-          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '240' }}
+          AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
+          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '210' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
-          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || (github.event.schedule == '30 13 * * *' && '7200' || '3600') }}
-          DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
-          SLOT: ${{ github.event.schedule == '30 13 * * *' && '1' || '0' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
+          DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
+          SLOT: "0"
           AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
           PRESET: ${{ github.event.inputs.preset }}
           NO_UPLOAD: ${{ github.event.inputs.no_upload }}
