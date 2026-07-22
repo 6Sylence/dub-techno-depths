@@ -236,6 +236,19 @@ def _pluck(sr, freq, dur, cutoff=None):
     return _reso_lp(tone * env, cutoff or (freq * 6 + 1200), sr, res=0.4) * 0.6
 
 
+def _leadsaw(sr, freq, dur, detune=0.016):
+    """Big detuned supersaw lead note — the euphoric, bright festival/car-EDM
+    topline that doubles the hook. Longer sustain than the pluck."""
+    n = int(dur * sr)
+    idx = np.arange(n)
+    t = idx / sr
+    tone = (_saw(freq * (1 - detune), t) + _saw(freq, t) + _saw(freq * (1 + detune), t)
+            + 0.5 * _saw(freq * 0.5, t))                       # sub octave for body
+    env = np.minimum(idx / (0.004 * sr), 1.0) * np.exp(-idx / (0.32 * sr))
+    env *= np.minimum((n - idx) / (0.008 * sr), 1.0)           # release to 0 at end
+    return _reso_lp(tone * env, freq * 4 + 2200, sr, res=0.2) / 3.5
+
+
 def _clap(sr, rng):
     n = int(0.34 * sr)
     idx = np.arange(n)
@@ -376,7 +389,8 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
     riser = _sweep(sr, 2 * beat, rng, up=True)
     impact = _impact(sr, rng)
 
-    donk_cache, chord_cache, sub_cache, pluck_cache, vox_cache = {}, {}, {}, {}, {}
+    donk_cache, chord_cache, sub_cache, pluck_cache, vox_cache, sawlead_cache = {}, {}, {}, {}, {}, {}
+    saw_gain = float(preset.get("saw_lead_gain", 0.55))
     vocal_gain = float(preset.get("vocal_gain", 0.0))
     vowel = preset.get("vowel", "ah")
     for root, qual in prog:
@@ -458,6 +472,10 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
                 if m not in pluck_cache:
                     pluck_cache[m] = _pluck(sr, _midi_hz(m), beat * 0.5)
                 _wrap_add(lead, pluck_cache[m] * lead_gain_base, base + (mst % 16) * six)
+                if saw_gain > 0 and not is_break:            # big supersaw doubles the hook in the drop
+                    if m not in sawlead_cache:
+                        sawlead_cache[m] = _leadsaw(sr, _midi_hz(m), beat * 0.5)
+                    _wrap_add(lead, sawlead_cache[m] * saw_gain, base + (mst % 16) * six)
 
         # --- vocal chop hook (the 'voices') ------------------------------
         if vocal_gain > 0 and not is_break:
