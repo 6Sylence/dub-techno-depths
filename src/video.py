@@ -519,33 +519,137 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
+# --------------------------------------------------------------------------- #
+# Bokeh "album-cover" thumbnail
+# --------------------------------------------------------------------------- #
+# A coherent cyan/blue defocused-city look, identical on every upload so the
+# thumbnails read as one recognizable brand in the feed (the trick the big
+# bass-boosted channels use). The skyline is drawn procedurally — building
+# silhouettes with lit windows — then Gaussian-blurred into bokeh, so there is
+# no real photo and nothing to license. The palette is deliberately fixed to
+# cyan/blue regardless of the preset so the channel's still frames stay
+# consistent; the preset only drives the title text.
+BOKEH_STOPS = ["#04070f", "#071630", "#0b2547"]
+BOKEH_WINDOW = [(60, 200, 255), (150, 225, 255), (90, 170, 255),
+                (230, 245, 255), (255, 180, 95)]
+BOKEH_DISC = [(40, 200, 255), (120, 210, 255), (70, 150, 255)]
+
+
+def _bokeh_city(tw: int, th: int, rng: "np.random.Generator", blur: float) -> "Image.Image":
+    """Procedural night skyline (lit windows) blurred into defocused city bokeh."""
+    grad = _vertical_gradient(BOKEH_STOPS, th)
+    base_arr = np.repeat(grad[:, None, :], tw, axis=1)
+    base = Image.fromarray(np.clip(base_arr, 0, 255).astype("uint8"), "RGB")
+    d = ImageDraw.Draw(base)
+    x = -20
+    while x < tw + 20:
+        w = int(rng.integers(44, 120))
+        bh = int(rng.integers(int(th * 0.28), int(th * 0.72)))
+        top = th - bh
+        d.rectangle([x, top, x + w, th], fill=(5, 12, 26))       # building silhouette
+        cols = max(2, w // 15)
+        rows = max(3, bh // 15)
+        cw = (w - 10) / cols
+        chh = (bh - 10) / rows
+        for c in range(cols):
+            for r in range(rows):
+                if rng.random() < 0.55:                          # some windows lit
+                    col = BOKEH_WINDOW[rng.integers(0, len(BOKEH_WINDOW))]
+                    b = rng.uniform(0.35, 1.0)
+                    col = tuple(int(v * b) for v in col)
+                    wx = x + 5 + c * cw
+                    wy = top + 5 + r * chh
+                    d.rectangle([wx, wy, wx + cw * 0.62, wy + chh * 0.62], fill=col)
+        x += w + int(rng.integers(-6, 8))
+    return base.filter(ImageFilter.GaussianBlur(blur))           # defocus -> bokeh
+
+
+def _bokeh_discs(tw: int, th: int, rng: "np.random.Generator", n: int) -> "Image.Image":
+    """Big soft foreground bokeh discs for depth."""
+    layer = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for _ in range(n):
+        x = rng.uniform(0, tw)
+        y = rng.uniform(0.25 * th, th)
+        r = rng.uniform(40, 95)
+        c = BOKEH_DISC[rng.integers(0, len(BOKEH_DISC))]
+        a = int(rng.uniform(40, 90))
+        d.ellipse([x - r, y - r, x + r, y + r], fill=c + (a,))
+    return layer.filter(ImageFilter.GaussianBlur(28))
+
+
+def _render_city_bokeh(title: str, subtitle: str, tw: int, th: int,
+                       seed: int | None) -> "Image.Image":
+    """Premium album-cover thumbnail: cyan/blue city bokeh + three-tier text."""
+    rng = np.random.default_rng(0 if seed is None else int(seed))
+    img = _bokeh_city(tw, th, rng, blur=7).convert("RGBA")
+    img = Image.alpha_composite(img, _bokeh_discs(tw, th, rng, 9))
+    arr = np.asarray(img.convert("RGB"), dtype=np.float64)
+
+    # Vignette to pull the eye to the centre.
+    yy, xx = np.mgrid[0:th, 0:tw]
+    vig = 1 - 0.55 * (((xx - tw / 2) / (tw / 1.6)) ** 2 + ((yy - th / 2) / (th / 1.35)) ** 2)
+    arr = arr * np.clip(vig, 0.28, 1)[..., None]
+    # Soft dark band behind the title for legibility.
+    band = np.exp(-((np.arange(th) - th * 0.55) / (th * 0.19)) ** 2) * 160
+    arr = np.clip(arr - band[:, None, None] * 0.55, 0, 255)
+
+    im = Image.fromarray(arr.astype("uint8"), "RGB")
+    d = ImageDraw.Draw(im)
+    cx = tw // 2
+
+    # Tier 1 — small channel wordmark.
+    bf = _load_font(int(th * 0.053))
+    wm = "BASS BOOSTED NATION"
+    b = d.textbbox((0, 0), wm, font=bf)
+    d.text((cx - (b[2] - b[0]) // 2, int(th * 0.085)), wm, font=bf, fill=(120, 205, 255))
+    # Tier 2 — cyan divider bar.
+    dy = int(th * 0.45)
+    d.rectangle([cx - 95, dy, cx + 95, dy + 6], fill=(50, 205, 255))
+    # Main title (drop shadow + white).
+    tf = _load_font(int(th * 0.156))
+    tb = d.textbbox((0, 0), title, font=tf)
+    tx = cx - (tb[2] - tb[0]) // 2
+    d.text((tx + 3, dy + 28 + 3), title, font=tf, fill=(0, 0, 0))
+    d.text((tx, dy + 28), title, font=tf, fill=(246, 251, 255))
+    # Tier 3 — metadata line (uppercased for the album-cover feel).
+    mf = _load_font(int(th * 0.058))
+    meta = subtitle.upper()
+    mb = d.textbbox((0, 0), meta, font=mf)
+    d.text((cx - (mb[2] - mb[0]) // 2, dy + int(th * 0.25)), meta, font=mf, fill=(150, 205, 255))
+    return im
+
+
 def build_thumbnail(preset: dict, title: str, subtitle: str, path: str | Path,
                     seed: int | None = None) -> Path:
-    """1280x720 thumbnail: full themed scene (bg + mist + effect) + typography.
+    """1280x720 thumbnail.
 
-    Compositing the same layers the video uses makes the thumbnail an honest,
-    distinctive still of that day's scene instead of a bare gradient — each
-    preset (rain streaks, embers, stars…) reads differently in the feed.
+    Synthwave (bass-boosted) presets get the premium cyan/blue *city-bokeh*
+    album-cover treatment with three-tier typography — a coherent, recognizable
+    still-frame brand across every upload. Any other style falls back to
+    compositing the day's scene layers with centred typography.
     """
     tw, th = 1280, 720
+
+    if preset["visual"].get("style") == "synthwave":
+        img = _render_city_bokeh(title, subtitle, tw, th, seed)
+        out = Path(path)
+        img.save(out, "JPEG", quality=92)
+        return out
+
     tmp = Path(path)
     bg_p = tmp.with_suffix(".bg.png")
     build_background(preset, bg_p, width=tw, height=th, seed=seed)
 
-    if preset["visual"].get("style") == "synthwave":
-        # The synthwave scene is a complete, single-tile still — use it directly.
-        img = Image.open(bg_p).convert("RGBA")
-        extra = ()
-    else:
-        mist_p = tmp.with_suffix(".mist.png")
-        fx_p = tmp.with_suffix(".fx.png")
-        build_mist(preset, mist_p, width=tw, height=th, seed=seed)
-        build_effect_layer(preset, fx_p, width=tw, height=th, seed=seed)
-        img = Image.open(bg_p).convert("RGBA").crop((tw // 3, 0, tw // 3 + tw, th))
-        mist = Image.open(mist_p).crop((tw // 2, 0, tw // 2 + tw, th))
-        fx = Image.open(fx_p).crop((0, 0, tw, th))
-        img = Image.alpha_composite(Image.alpha_composite(img, mist), fx)
-        extra = (mist_p, fx_p)
+    mist_p = tmp.with_suffix(".mist.png")
+    fx_p = tmp.with_suffix(".fx.png")
+    build_mist(preset, mist_p, width=tw, height=th, seed=seed)
+    build_effect_layer(preset, fx_p, width=tw, height=th, seed=seed)
+    img = Image.open(bg_p).convert("RGBA").crop((tw // 3, 0, tw // 3 + tw, th))
+    mist = Image.open(mist_p).crop((tw // 2, 0, tw // 2 + tw, th))
+    fx = Image.open(fx_p).crop((0, 0, tw, th))
+    img = Image.alpha_composite(Image.alpha_composite(img, mist), fx)
+    extra = (mist_p, fx_p)
 
     # Darken the lower band for text legibility (soft vertical ramp).
     grad = np.zeros((th, tw), dtype=np.uint8)
