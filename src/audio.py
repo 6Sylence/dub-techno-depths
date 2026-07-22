@@ -394,6 +394,19 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
             vox_cache[m] = _vocal(sr, _midi_hz(m), beat * 0.9, rng, vowel)
         return vox_cache[m]
 
+    lead_gain_base = float(preset.get("lead_gain", 0.7))
+
+    # A catchy 2-bar lead motif that REPEATS across the track (transposed to each
+    # bar's chord) — the memorable topline hook that defines the car-music EDM
+    # sound. Seeded, so every track in a mix gets a different hook.
+    mrng = np.random.default_rng((seed or 0) + 4242)
+    motif = []
+    mi = int(mrng.integers(0, 4))
+    for st in range(32):                                # 32 sixteenths = 2 bars
+        if mrng.random() < 0.5:
+            mi = int(np.clip(mi + mrng.integers(-2, 3), 0, 6))
+            motif.append((st, mi))
+
     for b in range(n_bars):
         base = b * bar_s
         root, qual = prog[b % len(prog)]
@@ -434,17 +447,17 @@ def render_loop(preset: dict, seconds: float, sr: int = DEFAULT_SR,
         cg = float(preset.get("chord_gain", 0.8)) * (0.6 if is_break else 1.0)
         _wrap_add(chords, chord_cache[(root, qual)] * cg, base)
 
-        # --- lead riff ----------------------------------------------------
-        if not is_break and style != "bigroom":
-            notes = [root + 12 + s for s in QUALITIES[qual]]
-            pattern = (0, 2, 1, 2, 0, 1, 2, 1)
-            for i, step in enumerate(range(0, 16, 2)):
-                if rng.random() < 0.85:
-                    m = notes[pattern[i % len(pattern)] % len(notes)]
-                    if m not in pluck_cache:
-                        pluck_cache[m] = _pluck(sr, _midi_hz(m), beat * 0.5)
-                    _wrap_add(lead, pluck_cache[m] * float(preset.get("lead_gain", 0.7)),
-                              base + step * six)
+        # --- lead: catchy melodic hook (repeats every 2 bars, follows chords) --
+        if not is_break and lead_gain_base > 0:
+            pool = ([root + 12 + s for s in QUALITIES[qual]]
+                    + [root + 24 + s for s in QUALITIES[qual][:2]])
+            for mst, mi_ in motif:
+                if mst // 16 != (b % 2):                # this note's bar in the 2-bar motif
+                    continue
+                m = pool[mi_ % len(pool)]
+                if m not in pluck_cache:
+                    pluck_cache[m] = _pluck(sr, _midi_hz(m), beat * 0.5)
+                _wrap_add(lead, pluck_cache[m] * lead_gain_base, base + (mst % 16) * six)
 
         # --- vocal chop hook (the 'voices') ------------------------------
         if vocal_gain > 0 and not is_break:
@@ -540,12 +553,43 @@ def render_mix(presets: list, total_seconds: float, sr: int = DEFAULT_SR,
     n_tracks = max(1, int(round(block / track_seconds)))
     xf = int(1.5 * sr)
 
+    npre = len(presets)
+    # A preset order that visits every preset with no immediate repeat: step by a
+    # stride coprime to the count so consecutive tracks are always a different
+    # preset. Start offset varies the daily rotation.
+    stride = next((k for k in (5, 4, 3, 2) if npre % k), 1)
+    order = [(base_seed + i * stride) % npre for i in range(n_tracks)]
+
     segs = []
+    prev_key = None
+    prev_style = None
     for i in range(n_tracks):
-        p = presets[(base_seed // 5 + i) % len(presets)]
-        key = int((base_seed // 7 + i * 5) % 7) - 3            # transpose -3..+3 semitones
+        p = presets[order[i]]
+        trng = np.random.default_rng(base_seed + 7919 * (i + 1))
         ap = dict(p["audio"])
+
+        # Different KEY from the previous track.
+        key = int(trng.integers(-4, 5))
+        while key == prev_key:
+            key = int(trng.integers(-4, 5))
+        prev_key = key
         ap["progression"] = [[r + key, q] for r, q in ap["progression"]]
+
+        # Different TEMPO (±4 BPM) so no two tracks share a groove feel.
+        ap["bpm"] = float(ap.get("bpm", 126)) + int(trng.integers(-4, 5))
+
+        # Vary the CHARACTER: lead brightness, vocal presence, and occasionally
+        # swap the style, so even a repeated preset never sounds like last time.
+        ap["lead_gain"] = float(ap.get("lead_gain", 0.7)) * float(trng.uniform(0.75, 1.25))
+        base_vox = float(ap.get("vocal_gain", 0.0))
+        ap["vocal_gain"] = 0.0 if (base_vox > 0 and trng.random() < 0.25) else base_vox * float(trng.uniform(0.8, 1.2))
+        if trng.random() < 0.3:
+            style = ap.get("style", "bounce")
+            alts = [s for s in ("bounce", "bigroom", "electro") if s != style and s != prev_style]
+            if alts:
+                ap["style"] = alts[int(trng.integers(0, len(alts)))]
+        prev_style = ap.get("style", "bounce")
+
         s = (base_seed + 1 + i * 101) % (2 ** 31)
         segs.append(render_loop(ap, track_seconds, sr=sr, seed=s).astype(np.float64))
 
