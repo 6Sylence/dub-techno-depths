@@ -9,7 +9,7 @@
 presets:
   # ---------------- BOUNCE ----------------
   - id: bounce_night
-    title: "Bass Boosted"
+    title: "Bounce"
     theme_words: ["Night Drive", "Bounce", "Turn It Up", "Bass"]
     emoji: "🔊"
     audio:
@@ -155,8 +155,8 @@ presets:
       beat_pulse: 0.12
 
   - id: bass_drive
-    title: "Bass Boosted"
-    theme_words: ["Night Drive", "Bass Boosted", "Neon", "Cruise"]
+    title: "Night Drive"
+    theme_words: ["Night Drive", "Neon", "Cruise", "Bass"]
     emoji: "🌃"
     audio:
       bpm: 126

@@ -43,10 +43,48 @@ def _vertical_gradient(palette: list[str], h: int) -> np.ndarray:
     return out
 
 
+# Fixed channel brand mark — identical on every video/thumbnail so the channel
+# is recognizable at a glance (like the big bass-boosted channels' logos).
+BRAND_LINE1 = "BASS BOOSTED"
+BRAND_LINE2 = "N A T I O N"
+BRAND_GLOW = (255, 45, 150)
+
+
+def _brand_overlay(img: "Image.Image") -> "Image.Image":
+    """Stamp the fixed neon brand (EQ emblem + wordmark) top-centre with a glow."""
+    W, H = img.size
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    cx = W // 2
+    r = int(H * 0.058)
+    ey = int(H * 0.055) + r
+    d.ellipse([cx - r, ey - r, cx + r, ey + r], outline=BRAND_GLOW, width=max(3, W // 420))
+    bars = [0.45, 0.75, 1.0, 0.62, 0.85]
+    bw, gap = int(r * 0.22), int(r * 0.12)
+    x0 = cx - (len(bars) * bw + (len(bars) - 1) * gap) // 2
+    for i, hh in enumerate(bars):
+        bh = int(r * 1.15 * hh)
+        x = x0 + i * (bw + gap)
+        d.rounded_rectangle([x, ey - bh // 2, x + bw, ey + bh // 2],
+                            radius=bw // 2, fill=(255, 255, 255, 255))
+    f1, f2 = _load_font(int(H * 0.072)), _load_font(int(H * 0.030))
+    wy = ey + r + int(H * 0.02)
+    for txt, font, y, fill in ((BRAND_LINE1, f1, wy, (255, 255, 255, 255)),
+                               (BRAND_LINE2, f2, wy + int(H * 0.085), BRAND_GLOW + (255,))):
+        b = d.textbbox((0, 0), txt, font=font)
+        d.text((cx - (b[2] - b[0]) // 2, y), txt, font=font, fill=fill)
+    glow = layer.filter(ImageFilter.GaussianBlur(max(4, W // 300)))
+    out = img.convert("RGBA")
+    out = Image.alpha_composite(out, glow)       # colored halo
+    out = Image.alpha_composite(out, glow)       # double bloom
+    out = Image.alpha_composite(out, layer)      # crisp mark on top
+    return out.convert("RGB")
+
+
 def _render_synthwave(vis: dict, width: int, height: int, seed: int | None) -> np.ndarray:
     """A synthwave scene: sunset sky + scanline sun + starfield + neon perspective
-    grid. Returns a single-tile (H, W, 3) uint8 image (rendered static; the video
-    keeps it still and animates the mist/stars + beat pulse over it)."""
+    grid + the fixed channel brand. Returns a single-tile (H, W, 3) uint8 image
+    (static; the video animates mist/stars + beat pulse over it)."""
     rng = np.random.default_rng(seed)
     pal = vis["palette"]
     sky_top, sky_mid = _hex_to_rgb(pal[0]), _hex_to_rgb(pal[1])
@@ -99,7 +137,8 @@ def _render_synthwave(vis: dict, width: int, height: int, seed: int | None) -> n
     g = float(vis.get("grain", 0.04)) * 100.0
     if g > 0:
         out = np.clip(out + rng.normal(0.0, g, (height, width, 1)), 0, 255)
-    return out.astype("uint8")
+    scene = _brand_overlay(Image.fromarray(out.astype("uint8"), "RGB"))
+    return np.asarray(scene, dtype="uint8")
 
 
 def build_background(preset: dict, path: str | Path,
