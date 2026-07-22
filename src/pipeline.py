@@ -25,6 +25,16 @@ def _env(name: str, default=None):
     return os.environ.get(name, default)
 
 
+def _audio_seconds(path) -> float:
+    """Duration of an audio/video file via ffprobe (so we can mux with an exact
+    -t instead of the flaky `-stream_loop -1 -shortest` combination)."""
+    import subprocess
+    out = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(path)],
+        capture_output=True, text=True)
+    return float(json.loads(out.stdout)["format"]["duration"])
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Render (and optionally upload) a daily ambient video.")
     p.add_argument("--config", default=_env("CONFIG", str(ROOT / "config" / "presets.yaml")))
@@ -111,13 +121,18 @@ def main(argv=None) -> int:
         n_tr = int(_env("AI_TRACKS", "4") or "4")
         ts = float(_env("AI_TRACK_SECONDS", "240") or "240")
         print(f"[1/6] generating AI music (ElevenLabs Music): {n_tr} x {ts:.0f}s…")
-        files = ai_music.generate_tracks(preset, primary, n_tr, ts, out_dir, seed=seed)
-        if files:
-            audio_path = out_dir / "audio.m4a"
-            run(video.build_audio_concat_cmd([str(f) for f in files], str(audio_path)))
-            block_seconds = None                       # unknown length -> mux with -shortest
-        else:
-            print("    AI produced no tracks; falling back to the procedural mix")
+        try:                                           # any AI/ffmpeg hiccup -> procedural
+            files = ai_music.generate_tracks(preset, primary, n_tr, ts, out_dir, seed=seed)
+            if not files:
+                raise RuntimeError("no AI tracks were generated")
+            ai_audio = out_dir / "audio.m4a"
+            run(video.build_audio_concat_cmd([str(f) for f in files], str(ai_audio)))
+            block_seconds = _audio_seconds(ai_audio)
+            audio_path = ai_audio
+            print(f"    AI audio ready: {block_seconds / 60:.1f} min from {len(files)} track(s)")
+        except Exception as exc:
+            print(f"    AI music failed ({exc}); falling back to the procedural mix")
+            audio_path = wav
             block_seconds = _procedural_mix()
     else:
         if music_engine == "ai":

@@ -73,6 +73,7 @@ def generate_track(prompt: str, length_ms: int, out_path: str | Path,
     })
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
+            ctype = (resp.headers.get("Content-Type") or "").lower()
             data = resp.read()
     except urllib.error.HTTPError as exc:                       # surface the API's message
         detail = exc.read().decode("utf-8", "replace")[:500]
@@ -80,6 +81,9 @@ def generate_track(prompt: str, length_ms: int, out_path: str | Path,
     except Exception as exc:                                    # network / timeout / etc.
         raise AIMusicError(f"ElevenLabs request failed: {exc}") from exc
 
+    if "json" in ctype or "application/json" in ctype:          # not raw audio
+        raise AIMusicError(f"ElevenLabs returned JSON, not audio: "
+                           f"{data.decode('utf-8', 'replace')[:400]}")
     if not data or len(data) < 2000:                            # too small to be audio
         raise AIMusicError(f"ElevenLabs returned {len(data)} bytes (not audio)")
     out = Path(out_path)
