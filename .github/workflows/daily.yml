@@ -1,6 +1,9 @@
 name: Daily EDM upload
 
-# One upload a day (cron is UTC) at a peak listening window.
+# One upload a day (cron is UTC). 17:07 UTC hits the US+EU sweet spot:
+# EU evening (19:07 CEST), US-East midday (13:07 EDT) seeding ahead of the
+# 5pm drive-home peak, US-West mid-morning. The :07 minute (not :00) avoids
+# GitHub's most-congested cron slot so the run is far less likely to be delayed.
 #
 # AI-music budget (ElevenLabs Creator): 100,000 credits/month and Eleven Music
 # costs 900 credits/min -> ~111 min of generated music per month. So we generate
@@ -9,7 +12,7 @@ name: Daily EDM upload
 # on a bigger ElevenLabs plan (Pro = 500k credits ≈ 555 min/month).
 on:
   schedule:
-    - cron: "0 16 * * *"
+    - cron: "7 17 * * *"
   workflow_dispatch:
     inputs:
       preset:
