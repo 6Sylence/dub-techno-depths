@@ -1,0 +1,78 @@
+name: Daily EDM upload (extra, procedural)
+
+# A SECOND free upload each day, rendered with the in-house procedural engine
+# (numpy) instead of ElevenLabs — so it costs zero API credits and stays fully
+# commercial-safe (100% original audio). It uses SLOT=1, which shifts the preset
+# rotation (stride 5) and salts the seed, so it never clones that day's AI video.
+#
+# 01:07 UTC targets the US night-drive window (21:07 EDT / 18:07 PDT) — prime
+# time for "car music" — while the primary AI upload lands the US+EU daytime
+# peak at 17:07 UTC. Minute :07 avoids GitHub's congested top-of-hour slot.
+on:
+  schedule:
+    - cron: "7 1 * * *"
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "Force a preset id (blank = rotate by date, slot 1)"
+        required: false
+        default: ""
+      no_upload:
+        description: "Render only, do not upload (true/false)"
+        required: false
+        default: "false"
+      privacy:
+        description: "public / unlisted / private (blank = default)"
+        required: false
+        default: ""
+
+concurrency:
+  group: daily-upload-extra
+  cancel-in-progress: false
+
+jobs:
+  render-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Render and upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          # Free procedural engine only — no ElevenLabs, no credits spent.
+          MUSIC_ENGINE: procedural
+          LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
+          DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
+          SLOT: "1"
+          AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
+          PRESET: ${{ github.event.inputs.preset }}
+          NO_UPLOAD: ${{ github.event.inputs.no_upload }}
+        run: python -m src.pipeline
+
+      - name: Upload render artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: render-extra-${{ github.run_id }}
+          path: |
+            out/metadata.json
+            out/result.json
+            out/thumbnail.jpg
+          if-no-files-found: ignore
+          retention-days: 2
