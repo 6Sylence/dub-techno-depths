@@ -1,0 +1,40 @@
+name: Restore videos
+
+# Manual: set specific video ids back to public (or another privacy). Only the
+# ids listed are touched. Defaults to the two bass-boosted videos that the
+# "Hide old videos" run accidentally set to private.
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "Comma-separated video ids to restore"
+        required: false
+        default: "op5pl0Thang,RBdGvwxpcws"
+      privacy:
+        description: "Restore to: public / unlisted / private"
+        required: false
+        default: "public"
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore videos
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          RESTORE_IDS: ${{ github.event.inputs.ids }}
+          RESTORE_PRIVACY: ${{ github.event.inputs.privacy }}
+        run: python scripts/restore_videos.py
