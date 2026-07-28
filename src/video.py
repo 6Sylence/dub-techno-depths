@@ -578,61 +578,94 @@ def _bokeh_discs(tw: int, th: int, rng: "np.random.Generator", n: int) -> "Image
     return layer.filter(ImageFilter.GaussianBlur(28))
 
 
-def _render_city_bokeh(title: str, subtitle: str, tw: int, th: int,
-                       seed: int | None) -> "Image.Image":
-    """Premium album-cover thumbnail: cyan/blue city bokeh + three-tier text."""
+def _bokeh_base(tw: int, th: int, seed: int | None) -> "Image.Image":
+    """Shared cyan/blue defocused-city background (vignette + title band)."""
     rng = np.random.default_rng(0 if seed is None else int(seed))
     img = _bokeh_city(tw, th, rng, blur=7).convert("RGBA")
     img = Image.alpha_composite(img, _bokeh_discs(tw, th, rng, 9))
     arr = np.asarray(img.convert("RGB"), dtype=np.float64)
-
-    # Vignette to pull the eye to the centre.
     yy, xx = np.mgrid[0:th, 0:tw]
     vig = 1 - 0.55 * (((xx - tw / 2) / (tw / 1.6)) ** 2 + ((yy - th / 2) / (th / 1.35)) ** 2)
     arr = arr * np.clip(vig, 0.28, 1)[..., None]
-    # Soft dark band behind the title for legibility.
     band = np.exp(-((np.arange(th) - th * 0.55) / (th * 0.19)) ** 2) * 160
     arr = np.clip(arr - band[:, None, None] * 0.55, 0, 255)
+    return Image.fromarray(arr.astype("uint8"), "RGB")
 
-    im = Image.fromarray(arr.astype("uint8"), "RGB")
+
+def _render_city_bokeh(title: str, subtitle: str, tw: int, th: int,
+                       seed: int | None, variant: int = 0) -> "Image.Image":
+    """Premium cyan/blue city-bokeh thumbnail.
+
+    Two interchangeable layouts so the channel can A/B its click-through rate
+    while keeping one coherent palette:
+      variant 0 — centred "album cover": wordmark, divider, title, metadata.
+      variant 1 — bottom-left "magazine": left accent bar + big left-aligned
+                  title, wordmark top-left, and a bright corner badge.
+    """
+    im = _bokeh_base(tw, th, seed)
     d = ImageDraw.Draw(im)
-    cx = tw // 2
+    cyan, bright, white = (120, 205, 255), (50, 205, 255), (246, 251, 255)
+    meta = subtitle.upper()
 
-    # Tier 1 — small channel wordmark.
+    if variant == 1:
+        # ---- Variant B: bottom-left magazine layout + corner badge ----
+        mx = int(tw * 0.055)
+        wf = _load_font(int(th * 0.05))
+        d.text((mx, int(th * 0.09)), "BASS BOOSTED NATION", font=wf, fill=cyan)
+        tf = _load_font(int(th * 0.165))
+        tb = d.textbbox((0, 0), title, font=tf)
+        ty = int(th * 0.60)
+        bar_h = tb[3] - tb[1]
+        d.rectangle([mx, ty, mx + 14, ty + bar_h + int(th * 0.02)], fill=bright)  # accent bar
+        tx = mx + 34
+        d.text((tx + 3, ty + 3), title, font=tf, fill=(0, 0, 0))
+        d.text((tx, ty), title, font=tf, fill=white)
+        mf = _load_font(int(th * 0.052))
+        d.text((tx, ty + bar_h + int(th * 0.03)), meta, font=mf, fill=cyan)
+        # Bright corner badge (badges lift CTR).
+        badge = f"MIX {subtitle.split('•')[-1].strip()}" if "•" in subtitle else "NEW MIX"
+        bff = _load_font(int(th * 0.044))
+        bb = d.textbbox((0, 0), badge, font=bff)
+        pad = int(th * 0.018)
+        bw, bh = bb[2] - bb[0], bb[3] - bb[1]
+        bx1 = tw - bw - 3 * pad - int(tw * 0.03)
+        by1 = int(th * 0.085)
+        d.rectangle([bx1, by1, bx1 + bw + 2 * pad, by1 + bh + 2 * pad], fill=bright)
+        d.text((bx1 + pad, by1 + pad - bb[1]), badge, font=bff, fill=(4, 12, 26))
+        return im
+
+    # ---- Variant A: centred album cover ----
+    cx = tw // 2
     bf = _load_font(int(th * 0.053))
     wm = "BASS BOOSTED NATION"
     b = d.textbbox((0, 0), wm, font=bf)
-    d.text((cx - (b[2] - b[0]) // 2, int(th * 0.085)), wm, font=bf, fill=(120, 205, 255))
-    # Tier 2 — cyan divider bar.
+    d.text((cx - (b[2] - b[0]) // 2, int(th * 0.085)), wm, font=bf, fill=cyan)
     dy = int(th * 0.45)
-    d.rectangle([cx - 95, dy, cx + 95, dy + 6], fill=(50, 205, 255))
-    # Main title (drop shadow + white).
+    d.rectangle([cx - 95, dy, cx + 95, dy + 6], fill=bright)
     tf = _load_font(int(th * 0.156))
     tb = d.textbbox((0, 0), title, font=tf)
     tx = cx - (tb[2] - tb[0]) // 2
     d.text((tx + 3, dy + 28 + 3), title, font=tf, fill=(0, 0, 0))
-    d.text((tx, dy + 28), title, font=tf, fill=(246, 251, 255))
-    # Tier 3 — metadata line (uppercased for the album-cover feel).
+    d.text((tx, dy + 28), title, font=tf, fill=white)
     mf = _load_font(int(th * 0.058))
-    meta = subtitle.upper()
     mb = d.textbbox((0, 0), meta, font=mf)
     d.text((cx - (mb[2] - mb[0]) // 2, dy + int(th * 0.25)), meta, font=mf, fill=(150, 205, 255))
     return im
 
 
 def build_thumbnail(preset: dict, title: str, subtitle: str, path: str | Path,
-                    seed: int | None = None) -> Path:
+                    seed: int | None = None, variant: int = 0) -> Path:
     """1280x720 thumbnail.
 
     Synthwave (bass-boosted) presets get the premium cyan/blue *city-bokeh*
-    album-cover treatment with three-tier typography — a coherent, recognizable
-    still-frame brand across every upload. Any other style falls back to
-    compositing the day's scene layers with centred typography.
+    treatment. ``variant`` (0 or 1) picks between two layouts so the channel can
+    A/B its click-through rate while keeping one coherent palette. Any other
+    style falls back to compositing the day's scene layers with centred type.
     """
     tw, th = 1280, 720
 
     if preset["visual"].get("style") == "synthwave":
-        img = _render_city_bokeh(title, subtitle, tw, th, seed)
+        img = _render_city_bokeh(title, subtitle, tw, th, seed, variant=variant)
         out = Path(path)
         img.save(out, "JPEG", quality=92)
         return out

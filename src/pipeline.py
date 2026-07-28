@@ -187,7 +187,11 @@ def main(argv=None) -> int:
     else:
         print("[5/6] building metadata + thumbnail…")
         meta = metadata.build_metadata(preset, date, args.target_seconds, privacy=args.privacy)
-        video.build_thumbnail(preset, meta["thumbnail_title"], meta["thumbnail_subtitle"], thumb, seed=seed)
+        # Alternate the two thumbnail layouts across uploads so Studio analytics
+        # accumulate click-through data for each style (a rolling A/B test).
+        variant = (date.toordinal() + args.slot) % 2
+        video.build_thumbnail(preset, meta["thumbnail_title"], meta["thumbnail_subtitle"],
+                              thumb, seed=seed, variant=variant)
     (out_dir / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
     print(f"    title: {meta['title']}")
 
