@@ -1,16 +1,19 @@
 name: Daily Short
 
-# One vertical Short per day at 17:00 UTC ≈ 12:00-13:00 US Eastern — the lunch
-# scrolling window. SLOT=1 makes the Short tease that day's 2h workday mix.
+# One vertical Short per day at 23:07 UTC ≈ 19:07 US Eastern / 16:07 Pacific —
+# the US evening scroll window, when Shorts get the most swipes. Shorts are the
+# main discovery engine for a young channel (they're shown to non-subscribers),
+# so this is the funnel that feeds the long mixes. SLOT=1 teases that day's
+# bass-boosted bounce drop.
 #
-# TEMPORARILY PAUSED: both channels share one Google Cloud project and its
-# 10,000-unit daily API quota; this Short is the trim that keeps the rest of
-# the schedule safely under it. Re-enable the cron below once this channel has
-# its own Cloud project (see README "Puesta en marcha" — same steps, new
-# project), which restores a full 10k quota to each channel.
+# API budget: a video insert costs 1600 units of the project's 10,000/day quota.
+# With the two long uploads (17:07 + 01:07) this Short brings the day to
+# 3 x 1600 = 4800, comfortably under 10k. If a run ever fails with
+# "quotaExceeded", give this channel its own Google Cloud project (README
+# "Puesta en marcha") to restore a full 10k quota.
 on:
-  # schedule:
-  #   - cron: "0 17 * * *"
+  schedule:
+    - cron: "7 23 * * *"
   workflow_dispatch:
     inputs:
       preset:
