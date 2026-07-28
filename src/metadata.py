@@ -33,10 +33,12 @@ def _affiliate_block() -> str:
 
 
 GENERIC_TAGS = [
-    "bass boosted", "bass boosted music", "car music", "car music mix", "edm",
-    "edm mix", "melbourne bounce", "bounce", "electro house", "big room",
-    "festival mix", "gym music", "workout music", "party mix", "no copyright edm",
-    "bass boosted songs",
+    "bass boosted", "bass boosted music", "bass boosted car music",
+    "bass boosted songs", "car music", "car music mix", "bass boosted mix 2026",
+    "car music mix 2026", "edm", "edm mix", "edm 2026", "melbourne bounce",
+    "bounce", "electro house", "big room", "festival mix", "gym workout music",
+    "workout music", "gym music", "gaming music", "party mix", "bass music",
+    "no copyright edm", "bass boosted 2026",
 ]
 
 
@@ -56,7 +58,13 @@ def build_metadata(preset: dict, date: _dt.date, target_seconds: float,
     dur = _hours_label(target_seconds)
     year = date.year
 
-    title = f"🔊 {preset['title']} Mix {year} {emoji} {primary} | Best EDM & Bounce"
+    # Front-load "Bass Boosted" (the niche's #1 search term) in every title, then
+    # the rotating use-case keyword ("Gym Workout", "Car Music", "Gaming"…) and a
+    # keyword cluster that mirrors the top car-music channels. Rotation keeps a
+    # repeated preset from ever publishing the same title.
+    title = f"🔊 Bass Boosted {preset['title']} Mix {year} {emoji} {primary} | Car Music, EDM & Bounce"
+    if len(title) > 100:
+        title = f"🔊 Bass Boosted {preset['title']} Mix {year} {emoji} {primary} | EDM & Bounce"
     title = title[:100].strip()
 
     description = f"""🔊 {preset['title']} Mix {year} {emoji} — {dur} of bass-boosted EDM, Melbourne bounce and electro house. Huge kicks, a bouncing donk bass and hard-hitting drops made to turn up in the car, the gym or the party.
@@ -115,7 +123,7 @@ def build_shorts_metadata(preset: dict, date: _dt.date,
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")
 
-    title = f"🔊 {preset['title']} {emoji} Bass Boosted #shorts"
+    title = f"🔊 Bass Boosted {preset['title']} {emoji} Car Music EDM #shorts"
     title = title[:100].strip()
 
     description = f"""🔊 {preset['title']} {emoji} — a 60-second bass-boosted EDM loop to {primary.lower()}.

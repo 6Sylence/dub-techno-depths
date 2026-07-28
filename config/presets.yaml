@@ -10,7 +10,7 @@ presets:
   # ---------------- BOUNCE ----------------
   - id: bounce_night
     title: "Bounce"
-    theme_words: ["Night Drive", "Bounce", "Turn It Up", "Bass"]
+    theme_words: ["Night Drive", "Car Music", "Workout", "Party"]
     emoji: "🔊"
     audio:
       bpm: 126
@@ -40,7 +40,7 @@ presets:
 
   - id: car_bounce
     title: "Car Music"
-    theme_words: ["Car Music", "Bass Boosted", "Drive", "Bounce"]
+    theme_words: ["Car Music", "Gym Workout", "Driving", "Party"]
     emoji: "🚗"
     audio:
       bpm: 128
@@ -71,7 +71,7 @@ presets:
   # ---------------- BIG ROOM ----------------
   - id: big_room
     title: "Big Room"
-    theme_words: ["Festival", "Drop", "Anthem", "Energy"]
+    theme_words: ["Festival", "Gym Workout", "Gaming", "Party"]
     emoji: "🔥"
     audio:
       bpm: 128
@@ -98,7 +98,7 @@ presets:
 
   - id: festival
     title: "Festival EDM"
-    theme_words: ["Festival", "Mainstage", "Anthem", "Party"]
+    theme_words: ["Festival", "Party", "Gaming", "Rave"]
     emoji: "🎉"
     audio:
       bpm: 130
@@ -128,7 +128,7 @@ presets:
   # ---------------- ELECTRO ----------------
   - id: electro_house
     title: "Electro House"
-    theme_words: ["Electro", "Bounce", "Energy", "Club"]
+    theme_words: ["Club", "Gym Workout", "Gaming", "Party"]
     emoji: "⚡"
     audio:
       bpm: 128
@@ -156,7 +156,7 @@ presets:
 
   - id: bass_drive
     title: "Night Drive"
-    theme_words: ["Night Drive", "Neon", "Cruise", "Bass"]
+    theme_words: ["Night Drive", "Car Music", "Cruise", "Workout"]
     emoji: "🌃"
     audio:
       bpm: 126
