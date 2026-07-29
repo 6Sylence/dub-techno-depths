@@ -166,15 +166,56 @@ def _render_synthwave(vis: dict, width: int, height: int, seed: int | None) -> n
     return np.asarray(scene, dtype="uint8")
 
 
+# Optional library of copyright-safe car/garage background images. Drop 16:9
+# .jpg/.png files in assets/car_backgrounds/ (supply your own, or generate them
+# with scripts/generate_backgrounds.py). When the folder has images they replace
+# the drawn synthwave scene as the video's static base; the brand mark, mist,
+# stars and beat-pulse still composite on top. Empty folder -> synthwave as before.
+_BG_LIBRARY_DIR = Path(__file__).resolve().parent.parent / "assets" / "car_backgrounds"
+
+
+def _background_library() -> list[Path]:
+    if not _BG_LIBRARY_DIR.is_dir():
+        return []
+    return sorted(p for p in _BG_LIBRARY_DIR.iterdir()
+                  if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+
+
+def _render_library_bg(img_path: Path, width: int, height: int) -> np.ndarray:
+    """Cover-crop a library image to WxH, deepen it a touch for text/mood, and
+    stamp the channel brand mark — the static base for a car-themed video."""
+    im = Image.open(img_path).convert("RGB")
+    # cover-crop to the exact frame
+    scale = max(width / im.width, height / im.height)
+    im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))),
+                   Image.LANCZOS)
+    left, top = (im.width - width) // 2, (im.height - height) // 2
+    im = im.crop((left, top, left + width, top + height))
+    arr = np.asarray(im, float)
+    # gentle vignette + slight darkening so overlays and the brand mark read
+    yy, xx = np.mgrid[0:height, 0:width]
+    vig = 1 - 0.35 * (((xx - width / 2) / (width / 1.5)) ** 2
+                      + ((yy - height / 2) / (height / 1.4)) ** 2)
+    arr = np.clip(arr * np.clip(vig, 0.45, 1)[..., None] * 0.92, 0, 255)
+    scene = _brand_overlay(Image.fromarray(arr.astype("uint8"), "RGB"))
+    return np.asarray(scene, dtype="uint8")
+
+
 def build_background(preset: dict, path: str | Path,
                      width: int = WIDTH, height: int = HEIGHT,
                      seed: int | None = None) -> Path:
     """Render the background. Synthwave presets get a full static neon scene (one
-    tile wide); everything else gets the horizontally-tileable gradient."""
+    tile wide) — or, if a car-background library is present, a rotated photo of
+    it; everything else gets the horizontally-tileable gradient."""
     vis = preset["visual"]
     if vis.get("style") == "synthwave":
         out = Path(path)
-        Image.fromarray(_render_synthwave(vis, width, height, seed), "RGB").save(out, "PNG")
+        lib = _background_library()
+        if lib:
+            pick = lib[(0 if seed is None else int(seed)) % len(lib)]
+            Image.fromarray(_render_library_bg(pick, width, height), "RGB").save(out, "PNG")
+        else:
+            Image.fromarray(_render_synthwave(vis, width, height, seed), "RGB").save(out, "PNG")
         return out
     rng = np.random.default_rng(seed)
     tile_w = width          # motion tile == one screen width
