@@ -75,8 +75,8 @@ def main() -> int:
     if not key:
         print("OPENAI_API_KEY not set — nothing to generate.", file=sys.stderr)
         return 1
-    model = os.environ.get("IMAGE_MODEL", "dall-e-3")
-    size = os.environ.get("IMAGE_SIZE", "1792x1024")
+    model = os.environ.get("IMAGE_MODEL", "gpt-image-1")
+    size = os.environ.get("IMAGE_SIZE", "1536x1024")
     base = os.environ.get("IMAGE_BASE_URL", "https://api.openai.com/v1").rstrip("/")
     count = int(os.environ.get("BG_COUNT", "12"))
     out_dir = Path(os.environ.get("OUT_DIR", str(ROOT / "assets" / "car_backgrounds")))
