@@ -86,9 +86,9 @@ def main() -> int:
     made = 0
     for i in range(count):
         prompt = PROMPTS[i % len(PROMPTS)]
+        # No response_format: this endpoint rejects it. dall-e-3 returns a URL,
+        # gpt-image-1 returns b64_json by default — the fetch below handles both.
         body = {"model": model, "prompt": prompt, "size": size, "n": 1}
-        if model.startswith("dall-e"):                 # gpt-image-1 rejects this field
-            body["response_format"] = "b64_json"
         try:
             resp = _post(f"{base}/images/generations", key, body)
             item = resp["data"][0]
