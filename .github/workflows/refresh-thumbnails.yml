@@ -1,0 +1,40 @@
+name: Refresh thumbnails
+
+# Manual: regenerate car-photo thumbnails (with the cyan brand) for already-
+# published PUBLIC videos and set them via the YouTube API. Touches thumbnails
+# only — the video footage is never changed. Safe and reversible.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max videos to touch (0 = all)"
+        required: false
+        default: "0"
+      dry_run:
+        description: "Render + report but don't upload (true/false)"
+        required: false
+        default: "false"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh thumbnails
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: python scripts/refresh_thumbnails.py
