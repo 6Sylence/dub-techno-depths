@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import yaml
@@ -100,8 +101,30 @@ def main() -> int:
         if not token:
             break
 
+    from googleapiclient.errors import HttpError
     from googleapiclient.http import MediaFileUpload
-    done = skipped = 0
+
+    def _set_with_retry(vid: str, path: Path) -> bool:
+        """Set one thumbnail, backing off on YouTube's burst rate limit (429)."""
+        for attempt in range(6):
+            try:
+                yt.thumbnails().set(
+                    videoId=vid,
+                    media_body=MediaFileUpload(str(path), mimetype="image/jpeg")).execute()
+                return True
+            except HttpError as exc:
+                if getattr(exc, "resp", None) is not None and exc.resp.status == 429:
+                    wait = 30 * (attempt + 1)
+                    print(f"    rate-limited on {vid}; waiting {wait}s "
+                          f"(try {attempt + 1}/6)…", flush=True)
+                    time.sleep(wait)
+                    continue
+                print(f"    error on {vid}: {exc}", flush=True)
+                return False
+        print(f"    gave up on {vid} (still rate-limited)", flush=True)
+        return False
+
+    done = skipped = failed = 0
     for i in range(0, len(ids), 50):
         info = yt.videos().list(part="status,snippet", id=",".join(ids[i:i + 50])).execute()
         for v in info["items"]:
@@ -115,23 +138,27 @@ def main() -> int:
                 continue
             dur = re.search(r"(\d+)\s*hour", title, re.I)
             sub = "BASS BOOSTED" + (f" • {dur.group(1)} HOUR" if dur else "")
-            img = lib[done % len(lib)]
+            img = lib[(done + failed) % len(lib)]
             thumb = _car_thumb(preset["title"].upper(), sub, img)
             tmp = Path(tempfile.mkdtemp()) / f"{v['id']}.jpg"
             thumb.save(tmp, "JPEG", quality=90)
             if dry:
                 print(f"  [dry] would set {v['id']}  {preset['title']:<13} <- {img.name}")
+                done += 1
+            elif _set_with_retry(v["id"], tmp):
+                print(f"  set {v['id']}  {preset['title']:<13} <- {img.name}", flush=True)
+                done += 1
+                time.sleep(6)                                  # ease the burst limit
             else:
-                yt.thumbnails().set(
-                    videoId=v["id"],
-                    media_body=MediaFileUpload(str(tmp), mimetype="image/jpeg")).execute()
-                print(f"  set {v['id']}  {preset['title']:<13} <- {img.name}")
-            done += 1
+                failed += 1
             if limit and done >= limit:
                 print(f"\nreached LIMIT={limit}")
-                print(f"done: {done} thumbnail(s){' (dry run)' if dry else ''}, {skipped} skipped")
-                return 0
-    print(f"\ndone: {done} thumbnail(s){' (dry run)' if dry else ''}, {skipped} skipped")
+                break
+        else:
+            continue
+        break
+    print(f"\ndone: {done} thumbnail(s){' (dry run)' if dry else ''}, "
+          f"{skipped} skipped, {failed} failed (re-run later for those)")
     return 0
 
 
