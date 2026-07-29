@@ -12,9 +12,9 @@ on:
         required: false
         default: "12"
       size:
-        description: "Image size (e.g. 1536x1024)"
+        description: "Image size (dall-e-3: 1792x1024 / 1024x1792 / 1024x1024)"
         required: false
-        default: "1536x1024"
+        default: "1792x1024"
       refresh:
         description: "Delete existing images first (true/false)"
         required: false

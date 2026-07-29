@@ -25,6 +25,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -58,8 +59,15 @@ def _post(url: str, key: str, body: dict, timeout: int = 180) -> dict:
         url, data=data,
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
         method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:               # surface the API's real message
+        try:
+            detail = exc.read().decode()[:400]
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"HTTP {exc.code}: {detail}") from None
 
 
 def main() -> int:
@@ -67,8 +75,8 @@ def main() -> int:
     if not key:
         print("OPENAI_API_KEY not set — nothing to generate.", file=sys.stderr)
         return 1
-    model = os.environ.get("IMAGE_MODEL", "gpt-image-1")
-    size = os.environ.get("IMAGE_SIZE", "1536x1024")
+    model = os.environ.get("IMAGE_MODEL", "dall-e-3")
+    size = os.environ.get("IMAGE_SIZE", "1792x1024")
     base = os.environ.get("IMAGE_BASE_URL", "https://api.openai.com/v1").rstrip("/")
     count = int(os.environ.get("BG_COUNT", "12"))
     out_dir = Path(os.environ.get("OUT_DIR", str(ROOT / "assets" / "car_backgrounds")))
@@ -79,6 +87,8 @@ def main() -> int:
     for i in range(count):
         prompt = PROMPTS[i % len(PROMPTS)]
         body = {"model": model, "prompt": prompt, "size": size, "n": 1}
+        if model.startswith("dall-e"):                 # gpt-image-1 rejects this field
+            body["response_format"] = "b64_json"
         try:
             resp = _post(f"{base}/images/generations", key, body)
             item = resp["data"][0]
