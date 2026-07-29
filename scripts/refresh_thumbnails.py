@@ -104,9 +104,15 @@ def main() -> int:
     from googleapiclient.errors import HttpError
     from googleapiclient.http import MediaFileUpload
 
+    # State file: video IDs already given the new thumbnail, so spaced re-runs
+    # skip them instead of burning YouTube's burst budget re-setting done ones.
+    state_path = Path(os.environ.get("STATE_FILE", str(ROOT / "scripts" / "thumb_done.txt")))
+    done_ids = set(state_path.read_text().split()) if state_path.exists() else set()
+
     def _set_with_retry(vid: str, path: Path) -> bool:
-        """Set one thumbnail, backing off on YouTube's burst rate limit (429)."""
-        for attempt in range(6):
+        """Set one thumbnail; short backoff on the 429 burst limit, then give up
+        (a later run retries) so a run never stalls to the job timeout."""
+        for attempt in range(3):
             try:
                 yt.thumbnails().set(
                     videoId=vid,
@@ -114,21 +120,24 @@ def main() -> int:
                 return True
             except HttpError as exc:
                 if getattr(exc, "resp", None) is not None and exc.resp.status == 429:
-                    wait = 30 * (attempt + 1)
+                    wait = 15 * (attempt + 1)
                     print(f"    rate-limited on {vid}; waiting {wait}s "
-                          f"(try {attempt + 1}/6)…", flush=True)
+                          f"(try {attempt + 1}/3)…", flush=True)
                     time.sleep(wait)
                     continue
                 print(f"    error on {vid}: {exc}", flush=True)
                 return False
-        print(f"    gave up on {vid} (still rate-limited)", flush=True)
+        print(f"    still rate-limited on {vid} — leaving for a later run", flush=True)
         return False
 
-    done = skipped = failed = 0
+    done = skipped = failed = already = 0
     for i in range(0, len(ids), 50):
         info = yt.videos().list(part="status,snippet", id=",".join(ids[i:i + 50])).execute()
         for v in info["items"]:
             if v["status"].get("privacyStatus") != "public":
+                continue
+            if v["id"] in done_ids:
+                already += 1
                 continue
             title = v["snippet"]["title"]
             preset = _match_preset(title)
@@ -148,6 +157,8 @@ def main() -> int:
             elif _set_with_retry(v["id"], tmp):
                 print(f"  set {v['id']}  {preset['title']:<13} <- {img.name}", flush=True)
                 done += 1
+                done_ids.add(v["id"])
+                state_path.write_text("\n".join(sorted(done_ids)) + "\n")
                 time.sleep(6)                                  # ease the burst limit
             else:
                 failed += 1
@@ -157,8 +168,8 @@ def main() -> int:
         else:
             continue
         break
-    print(f"\ndone: {done} thumbnail(s){' (dry run)' if dry else ''}, "
-          f"{skipped} skipped, {failed} failed (re-run later for those)")
+    print(f"\ndone: {done} new{' (dry run)' if dry else ''}, {already} already done, "
+          f"{skipped} skipped, {failed} still rate-limited (a later run finishes those)")
     return 0
 
 

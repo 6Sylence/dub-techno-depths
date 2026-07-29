@@ -15,6 +15,9 @@ on:
         required: false
         default: "false"
 
+permissions:
+  contents: write
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -38,3 +41,16 @@ jobs:
           LIMIT: ${{ github.event.inputs.limit }}
           DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: python scripts/refresh_thumbnails.py
+
+      - name: Persist progress
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/thumb_done.txt 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "no progress change to commit"
+          else
+            git commit -m "Track thumbnail-refresh progress [skip ci]"
+            git pull --rebase origin main && git push
+          fi
