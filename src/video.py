@@ -12,6 +12,7 @@ the motion, grain and vignette are applied by ffmpeg at render time.
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 
 import numpy as np
@@ -46,61 +47,103 @@ def _vertical_gradient(palette: list[str], h: int) -> np.ndarray:
 # Fixed channel brand mark — identical on every video/thumbnail so the channel
 # is recognizable at a glance (like the big bass-boosted channels' logos).
 BRAND_LINE1 = "BASS BOOSTED"
-BRAND_LINE2 = "N A T I O N"
-BRAND_GLOW = (255, 40, 120)
+BRAND_LINE2 = "NATION"
+# Named neon colours for the mark; pick with env BRAND_COLOR (default cyan).
+BRAND_COLORS = {
+    "cyan": (0, 210, 255),
+    "pink": (255, 46, 120),
+    "red": (255, 48, 62),
+    "gold": (255, 178, 40),
+    "green": (60, 255, 150),
+}
+BRAND_COLOR = BRAND_COLORS.get(os.environ.get("BRAND_COLOR", "cyan"), (0, 210, 255))
+# Where the mark sits: "center" (top-centre lockup) or "corner" (compact,
+# bottom-left, so it never covers the car). Override with env BRAND_VARIANT.
+BRAND_VARIANT = os.environ.get("BRAND_VARIANT", "corner")
 
 
-def _slant(im: "Image.Image", k: float = 0.28) -> "Image.Image":
-    """Shear an image for an aggressive italic lean."""
+def _slant(im: "Image.Image", k: float = 0.10) -> "Image.Image":
+    """Shear an image for a subtle italic lean (much gentler than before)."""
     w, h = im.size
     return im.transform((w + int(h * k), h), Image.AFFINE, (1, -k, 0, 0, 1, 0),
                         resample=Image.BICUBIC)
 
 
-def _wordmark(txt, font, fill, stroke, sw, k=0.28) -> "Image.Image":
-    """Render outlined text and slant it."""
+def _text_img(txt, font, fill, stroke_fill=None, sw=0) -> "Image.Image":
+    """Render text to a tight transparent image (optional neon outline)."""
     probe = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
     b = probe.textbbox((0, 0), txt, font=font, stroke_width=sw)
     im = Image.new("RGBA", (b[2] - b[0] + sw * 2 + 20, b[3] - b[1] + sw * 2 + 20), (0, 0, 0, 0))
     ImageDraw.Draw(im).text((10 - b[0], 10 - b[1]), txt, font=font, fill=fill,
-                            stroke_width=sw, stroke_fill=stroke)
-    return _slant(im, k)
+                            stroke_width=sw, stroke_fill=stroke_fill)
+    return im
 
 
-def _brand_overlay(img: "Image.Image") -> "Image.Image":
-    """Aggressive bass-music brand: a subwoofer emblem with radiating bass waves,
-    a slanted heavy 'BASS BOOSTED' wordmark with a thick neon outline, flanking
-    chevrons and 'NATION' — same on every upload so the channel is recognizable."""
-    W, H = img.size
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    cx = W // 2
-    r = int(H * 0.055)
-    ey = int(H * 0.045) + r
-    for k in (3, 2, 1):                                        # radiating bass waves
-        rr, wdt = int(r * (1.35 + 0.42 * k)), max(3, W // 460)
-        d.arc([cx - rr, ey - rr, cx + rr, ey + rr], -42, 42, fill=BRAND_GLOW, width=wdt)
-        d.arc([cx - rr, ey - rr, cx + rr, ey + rr], 138, 222, fill=BRAND_GLOW, width=wdt)
-    d.ellipse([cx - r, ey - r, cx + r, ey + r], fill=(255, 255, 255, 255))     # rim
-    ic = int(r * 0.62); d.ellipse([cx - ic, ey - ic, cx + ic, ey + ic], fill=BRAND_GLOW + (255,))
-    dc = int(r * 0.22); d.ellipse([cx - dc, ey - dc, cx + dc, ey + dc], fill=(255, 255, 255, 255))
-    f1, f2 = _load_font(int(H * 0.088)), _load_font(int(H * 0.032))
-    wm = _wordmark(BRAND_LINE1, f1, (255, 255, 255, 255), BRAND_GLOW + (255,), max(3, int(H * 0.008)))
-    wm = wm.resize((min(wm.width, int(W * 0.62)), int(H * 0.10)))
-    wy = ey + r + int(H * 0.012)
-    layer.alpha_composite(wm, (cx - wm.width // 2, wy))
-    chy = wy + wm.height // 2                                  # flanking chevrons
+def _emblem(d: "ImageDraw.ImageDraw", cx: int, cy: int, R: int, color) -> None:
+    """A clean subwoofer emblem: neon ring, white cone, coloured dust cap, and
+    two faint bass-wave arcs — far less busy than the old full-white disc."""
+    for k in (2, 1):                                          # faint bass waves
+        rr, w = int(R * (1.28 + 0.42 * k)), max(2, R // 8)
+        d.arc([cx - rr, cy - rr, cx + rr, cy + rr], -36, 36, fill=color + (150 - 45 * k,), width=w)
+        d.arc([cx - rr, cy - rr, cx + rr, cy + rr], 144, 216, fill=color + (150 - 45 * k,), width=w)
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=color + (255,), width=max(3, R // 6))
+    ic = int(R * 0.46); d.ellipse([cx - ic, cy - ic, cx + ic, cy + ic], fill=(255, 255, 255, 255))
+    dc = int(R * 0.15); d.ellipse([cx - dc, cy - dc, cx + dc, cy + dc], fill=color + (255,))
+
+
+def _brand_lockup(color=BRAND_COLOR) -> "Image.Image":
+    """Build the tight brand lockup once (emblem + wordmark + spaced NATION with
+    flanking rules) at a fixed reference resolution; callers scale/position it."""
+    H0 = 1440
+    canvas = Image.new("RGBA", (H0 * 2, H0), (0, 0, 0, 0))
+    d = ImageDraw.Draw(canvas)
+    cx = H0
+    R = int(H0 * 0.050)
+    ey = int(H0 * 0.03) + R
+    _emblem(d, cx, ey, R, color)
+
+    f1 = _load_font(int(H0 * 0.082))                          # BASS BOOSTED
+    wm = _slant(_text_img(BRAND_LINE1, f1, (255, 255, 255, 255), color + (255,),
+                          max(2, int(H0 * 0.006))))
+    wy = ey + R + int(H0 * 0.022)
+    canvas.alpha_composite(wm, (cx - wm.width // 2, wy))
+
+    f2 = _load_font(int(H0 * 0.050))                          # N A T I O N (bigger)
+    tag = _text_img(" ".join(BRAND_LINE2), f2, color + (255,), (255, 255, 255, 90),
+                    max(1, int(H0 * 0.002)))
+    ty = wy + wm.height + int(H0 * 0.010)
+    canvas.alpha_composite(tag, (cx - tag.width // 2, ty))
+    ry = ty + tag.height // 2                                 # flanking rules
+    gap, rule = int(H0 * 0.020), int(H0 * 0.050)
     for sgn in (-1, 1):
-        bx = cx + sgn * (wm.width // 2 + int(W * 0.03))
-        for j in range(3):
-            off, s = sgn * j * int(W * 0.014), int(H * 0.032)
-            d.line([(bx + off, chy - s), (bx + off + sgn * s, chy), (bx + off, chy + s)],
-                   fill=BRAND_GLOW, width=max(3, W // 500))
-    tag = _wordmark(BRAND_LINE2, f2, BRAND_GLOW + (255,), (0, 0, 0, 0), 0)
-    layer.alpha_composite(tag, (cx - tag.width // 2, wy + wm.height - int(H * 0.004)))
-    glow = layer.filter(ImageFilter.GaussianBlur(max(5, W // 260)))
+        x0 = cx + sgn * (tag.width // 2 + gap)
+        d.line([(x0, ry), (x0 + sgn * rule, ry)], fill=color + (255,),
+               width=max(2, int(H0 * 0.005)))
+    return canvas.crop(canvas.getbbox())
+
+
+def _brand_overlay(img: "Image.Image", variant: str | None = None,
+                   color=None) -> "Image.Image":
+    """Composite the brand lockup with a soft dark halo (legibility over bright
+    neon) and a single neon glow — crisp, not the old muddy double blur."""
+    W, H = img.size
+    variant = variant or BRAND_VARIANT
+    lock = _brand_lockup(color or BRAND_COLOR)
+    tw = int(W * (0.23 if variant == "corner" else 0.34))
+    th = max(1, int(lock.height * tw / lock.width))
+    lock = lock.resize((tw, th), Image.LANCZOS)
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pos = ((int(W * 0.035), H - th - int(H * 0.055)) if variant == "corner"
+           else (W // 2 - tw // 2, int(H * 0.035)))
+    layer.alpha_composite(lock, pos)
+
+    halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))            # dark halo behind
+    halo.paste((0, 0, 0, 255), (0, 0), layer.split()[3])
+    halo.putalpha(halo.split()[3].point(lambda a: int(a * 0.55)))
+    halo = halo.filter(ImageFilter.GaussianBlur(max(4, W // 300)))
+    glow = layer.filter(ImageFilter.GaussianBlur(max(3, W // 380)))
     out = img.convert("RGBA")
-    out = Image.alpha_composite(out, glow)
+    out = Image.alpha_composite(out, halo)
     out = Image.alpha_composite(out, glow)
     out = Image.alpha_composite(out, layer)
     return out.convert("RGB")
