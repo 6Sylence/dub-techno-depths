@@ -1,54 +1,65 @@
-# 🎧 Lofi Study Lounge — Canal de lofi hip hop automatizado
+# 🔊 Bass Boosted Nation — Canal de EDM bass boosted automatizado
 
-Genera y publica un mix de **lofi hip hop** nuevo cada día en YouTube, de forma
-totalmente automática. (Este repo empezó como un canal de techno y se reorientó
-a lofi — un nicho con mucha más demanda de audiencia.)
+Genera y publica un mix nuevo de **EDM bass boosted / car music** cada día en
+YouTube, de forma totalmente automática. (Este repo empezó con otros nombres —
+techno, luego lofi — y se reorientó a **bass boosted / car music**, un nicho
+global con enorme demanda: coche, gimnasio y fiesta.)
 
-Todo es **100% original y sintetizado desde cero** con numpy: batería boom-bap
-suave, sub-bajo cálido, acordes jazz de piano Rhodes con *warble* de cinta,
-hi-hats con swing, lluvia opcional y crujido de vinilo. Nada sampleado → seguro
-frente a copyright y a la nueva política de "contenido inauténtico" de YouTube.
+Todo es **100% original y sintetizado desde cero** con numpy: kick enorme, el
+característico "donk" del bounce en los contratiempos, supersaw de la caída,
+pluck pegadizo, sidechain duro, redobles de caja y risers hacia el drop. Nada
+sampleado → seguro frente a copyright y a la política de "contenido inauténtico"
+de YouTube.
 
 ## El motor (src/audio.py)
 
-- **Rejilla musical:** los loops se cuadran a frases de 8 compases; la progresión
-  de acordes (4 compases, voicings maj7/min9/dom9…) tesela el loop, y las colas
-  de reverb/notas **dan la vuelta al buffer**, así un mix de 1-2 h no tiene costura.
-- **Batería boom-bap:** bombo suave con caída de pitch, caja en 2 y 4, hi-hats a
-  corcheas **con swing** y humanización de velocidad.
-- **Rhodes jazzy:** cada nota es un piano eléctrico sintetizado con vibrato de
-  cinta coherente (warble), a través de una reverb oscura de ecos envueltos.
-- **Textura:** sub-bajo cálido, sidechain suave, filtro "polvoriento" y vinilo.
-- **Clave/patrones aleatorios por día** (seed determinista) → ningún mix se repite.
+- **Bass boosted de verdad:** kick contundente + sub, y el *donk* graves en los
+  offbeats — la energía de los grandes mixes de coche, pero original.
+- **Estructura EDM:** acordes supersaw detunados en el drop, lead de pluck,
+  builds con snare-roll y barridos de riser que entran al drop.
+- **Sidechain duro** que bombea toda la mezcla al ritmo del kick.
+- **Loop sin costura por diseño:** cada golpe/eco se suma de forma circular
+  (`_wrap_add`), los procesos continuos (EQ, reverb, filtro) son circulares y
+  cada LFO cumple ciclos enteros → un mix de 1-2 h repite sin ningún clic.
+- **Patrones/clave aleatorios por día** (seed determinista) → ningún mix se repite.
+
+## Fondos de vídeo
+
+Escena **synthwave** dibujada por código, o — si hay imágenes en
+`assets/car_backgrounds/` — una **foto de coche neón** rotada como base estática
+(la marca, la niebla, las estrellas y el pulso al ritmo se componen encima; el
+loop sigue sin costura). Carpeta vacía → synthwave. Las imágenes deben ser de
+**coches genéricos, sin logos ni marcas reales** para mantener el canal 100%
+libre de copyright. Ver `assets/car_backgrounds/README.md`.
 
 ## Presets (rotación diaria)
 
-| id            | Estilo                        | BPM |
-| ------------- | ----------------------------- | --- |
-| `lofi_study`  | Clásico cálido para estudiar  | 78  |
-| `sleepy_lofi` | Lento, nocturno, con lluvia   | 68  |
-| `rainy_lofi`  | Día de lluvia, acogedor       | 74  |
-| `jazzy_lofi`  | Café, más brillante y movido  | 84  |
-| `boombap_lofi`| Boom bap old-school, pegada   | 86  |
-| `dreamy_lofi` | Onírico, maj9, mucha reverb   | 70  |
+| id             | Título        | Estilo  | BPM |
+| -------------- | ------------- | ------- | --- |
+| `bounce_night` | Bounce        | bounce  | 126 |
+| `car_bounce`   | Car Music     | bounce  | 128 |
+| `big_room`     | Big Room      | bigroom | 128 |
+| `festival`     | Festival EDM  | bigroom | 130 |
+| `electro_house`| Electro House | electro | 128 |
+| `bass_drive`   | Night Drive   | bounce  | 126 |
 
 ## Automatización
 
 - `daily.yml` — 2 mixes/día (mañana 1 h, tarde 2 h), presets distintos por slot.
 - `shorts.yml` — 1 Short vertical/día (dispatch manual; reactivable en cron).
+- `generate-backgrounds.yml` — genera fondos de coche con IA (necesita saldo en
+  la API) y los commitea a `assets/car_backgrounds/`.
 - `ci.yml` — smoke test end-to-end de todos los presets en cada push.
 - `branding.yml` / `delete-video.yml` — mantenimiento del canal.
 
 ## Puesta en marcha
 
-Reutiliza el mismo canal de YouTube, secrets y proyecto de Google Cloud que ya
-tenía el canal de techno. Solo hay que:
-1. Renombrar el canal en YouTube Studio a **"Lofi Study Lounge"** (o el nombre que
-   elijas — dilo y actualizo `CHANNEL_NAME`), y borrar los mixes de techno viejos.
-2. Ejecutar el workflow **Channel branding** para aplicar banner/descripción lofi.
-3. (Opcional) subir el avatar nuevo en Studio.
-
-Los secrets `YT_CLIENT_ID/SECRET/REFRESH_TOKEN` ya existentes siguen valiendo.
+Los secrets `YT_CLIENT_ID/SECRET/REFRESH_TOKEN` y el proyecto de Google Cloud ya
+existentes siguen valiendo. Solo hay que:
+1. Tener el canal de YouTube nombrado **"Bass Boosted Nation"** (o el que elijas
+   — dilo y actualizo `CHANNEL_NAME` en `src/metadata.py`).
+2. Ejecutar el workflow **Channel branding** para aplicar banner/descripción.
+3. (Opcional) subir el avatar en Studio.
 
 ## Uso local
 
