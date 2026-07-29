@@ -19,6 +19,10 @@ on:
         description: "Delete existing images first (true/false)"
         required: false
         default: "false"
+      model:
+        description: "Image model (gpt-image-1 or dall-e-3)"
+        required: false
+        default: "gpt-image-1"
 
 permissions:
   contents: write
@@ -44,6 +48,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           BG_COUNT: ${{ github.event.inputs.count }}
           IMAGE_SIZE: ${{ github.event.inputs.size }}
+          IMAGE_MODEL: ${{ github.event.inputs.model }}
         run: python scripts/generate_backgrounds.py
 
       - name: Commit new images
