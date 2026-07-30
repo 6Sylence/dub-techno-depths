@@ -1,0 +1,21 @@
+name: ElevenLabs measure cost
+
+# Manual: generate one short test track to measure the real credit cost per
+# minute of ElevenLabs Music and print a recommended tracks x length budget.
+# Spends a small amount of credits (one ~30s generation).
+on:
+  workflow_dispatch:
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Measure
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python scripts/eleven_measure.py
