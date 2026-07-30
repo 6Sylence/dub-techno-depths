@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -41,11 +42,21 @@ def main() -> int:
         return 1
 
     used_before, limit = _used(key)
+    print(f"used before: {used_before} of {limit}")
     prompt = ai_music.build_prompt({"title": "Big Room", "audio": {"bpm": 128}},
                                    "energy", "test")
     dest = Path(tempfile.mkdtemp()) / "measure.mp3"
     ai_music.generate_track(prompt, TEST_SECONDS * 1000, dest)
-    used_after, _ = _used(key)
+    print(f"generated {dest.stat().st_size // 1024} KB of audio; polling credit counter…")
+
+    # The credit counter can lag; poll for up to ~2 min until it moves.
+    used_after = used_before
+    for _ in range(12):
+        time.sleep(10)
+        used_after, _ = _used(key)
+        if used_after != used_before:
+            break
+        print("    …counter unchanged, waiting")
 
     cost = used_after - used_before
     per_s = cost / TEST_SECONDS
