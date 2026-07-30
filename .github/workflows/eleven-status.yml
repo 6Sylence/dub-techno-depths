@@ -1,0 +1,20 @@
+name: ElevenLabs status
+
+# Manual, read-only: print the ElevenLabs plan tier, credit allowance, usage and
+# reset date so we can size the daily music config to the subscription.
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Query subscription
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python scripts/eleven_status.py
