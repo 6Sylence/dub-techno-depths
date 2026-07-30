@@ -67,8 +67,12 @@ jobs:
           # the key is missing or the API errors, so the upload never breaks.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          # Sized to the ElevenLabs Creator plan (~824 credits/min): morning 3 min
+          # of unique AI music, afternoon 2 min (see daily-extra) = ~5 min/day,
+          # ~123k credits/month, inside the 131k allowance. A credit guard in
+          # ai_music.py auto-shrinks this if the balance runs low.
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
-          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '210' }}
+          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '180' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}

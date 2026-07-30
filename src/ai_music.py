@@ -23,6 +23,11 @@ import urllib.request
 from pathlib import Path
 
 API_URL = "https://api.elevenlabs.io/v1/music"
+SUB_URL = "https://api.elevenlabs.io/v1/user/subscription"
+# Measured empirically: Eleven Music v2 costs ~824 credits per minute
+# (412 credits / 30 s). Used to keep monthly spend inside the plan.
+CREDITS_PER_SECOND = 14.0
+CREDIT_RESERVE = 3000          # always leave this many credits unspent
 
 
 class AIMusicError(RuntimeError):
@@ -31,6 +36,21 @@ class AIMusicError(RuntimeError):
 
 def available() -> bool:
     return bool(os.environ.get("ELEVENLABS_API_KEY", "").strip())
+
+
+def remaining_credits() -> int | None:
+    """Credits left this billing period, or None if it can't be read."""
+    key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        req = urllib.request.Request(
+            SUB_URL, headers={"xi-api-key": key, "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            d = json.loads(resp.read().decode())
+        return int(d["character_limit"]) - int(d["character_count"])
+    except Exception:                                          # never fail on the check
+        return None
 
 
 def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
@@ -116,6 +136,30 @@ def generate_tracks(preset: dict, primary: str, n_tracks: int, track_seconds: fl
     ]
     out_dir = Path(out_dir)
     files: list[Path] = []
+
+    # Credit guard: keep spend inside the plan. If the remaining balance can't
+    # cover n_tracks x track_seconds (plus a reserve), shrink the length — and
+    # if needed the track count — so late-month runs still produce music instead
+    # of failing. Falls through untouched if the balance can't be read.
+    rem = remaining_credits()
+    if rem is not None:
+        budget = max(0, rem - CREDIT_RESERVE)
+        affordable_s = budget / CREDITS_PER_SECOND
+        want_s = n_tracks * track_seconds
+        if affordable_s < want_s:
+            if affordable_s < 20:                              # basically nothing left
+                print(f"    [credit guard] only ~{int(rem)} credits left; "
+                      f"skipping AI music this run")
+                return []
+            # keep the track count if we can still give each >=45s, else drop count
+            per = affordable_s / n_tracks
+            if per < 45:
+                n_tracks = max(1, int(affordable_s // 60))
+                per = affordable_s / n_tracks
+            track_seconds = max(30.0, per)
+            print(f"    [credit guard] ~{int(rem)} credits left -> "
+                  f"{n_tracks} x {track_seconds:.0f}s to stay in budget")
+
     length_ms = int(track_seconds * 1000)
     for i in range(n_tracks):
         variant = variants[(seed + i) % len(variants)]

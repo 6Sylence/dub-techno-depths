@@ -127,7 +127,7 @@ def main(argv=None) -> int:
         write_wav(audio.render_loop(preset["audio"], args.loop_seconds, seed=seed), wav)
     elif music_engine == "ai" and ai_music.available():
         n_tr = int(_env("AI_TRACKS", "4") or "4")
-        ts = float(_env("AI_TRACK_SECONDS", "240") or "240")
+        ts = float(_env("AI_TRACK_SECONDS", "180") or "180")
         print(f"[1/6] generating AI music (ElevenLabs Music): {n_tr} x {ts:.0f}s…")
         try:
             files = ai_music.generate_tracks(preset, primary, n_tr, ts, out_dir, seed=seed)
