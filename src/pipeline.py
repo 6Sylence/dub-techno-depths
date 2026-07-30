@@ -113,6 +113,14 @@ def main(argv=None) -> int:
         print(f"    varied mix block: {s.shape[0] / audio.DEFAULT_SR / 60:.1f} min")
         return s.shape[0] / audio.DEFAULT_SR
 
+    # For a published long video with the AI engine, the procedural engine must
+    # NEVER be used as a silent fallback — a monotone old-engine mix going live is
+    # exactly the failure we refuse. If the AI music is missing or fails, abort
+    # the run so nothing is uploaded (override with ALLOW_PROCEDURAL_FALLBACK=1).
+    allow_fallback = str(_env("ALLOW_PROCEDURAL_FALLBACK", "")).lower() in ("1", "true", "yes")
+    require_ai = (music_engine == "ai" and not args.vertical
+                  and not args.no_upload and not allow_fallback)
+
     if args.vertical:
         # Shorts stay procedural (a 60 s clip isn't worth AI credits).
         print("[1/6] synthesizing audio…")
@@ -121,7 +129,7 @@ def main(argv=None) -> int:
         n_tr = int(_env("AI_TRACKS", "4") or "4")
         ts = float(_env("AI_TRACK_SECONDS", "240") or "240")
         print(f"[1/6] generating AI music (ElevenLabs Music): {n_tr} x {ts:.0f}s…")
-        try:                                           # any AI/ffmpeg hiccup -> procedural
+        try:
             files = ai_music.generate_tracks(preset, primary, n_tr, ts, out_dir, seed=seed)
             if not files:
                 raise RuntimeError("no AI tracks were generated")
@@ -131,9 +139,20 @@ def main(argv=None) -> int:
             audio_path = ai_audio
             print(f"    AI audio ready: {block_seconds / 60:.1f} min from {len(files)} track(s)")
         except Exception as exc:
+            if require_ai:
+                raise SystemExit(
+                    f"[1/6] AI music failed ({exc}). Refusing to publish a "
+                    f"procedural mix — aborting so nothing is uploaded. "
+                    f"(Set ALLOW_PROCEDURAL_FALLBACK=1 to override.)")
             print(f"    AI music failed ({exc}); falling back to the procedural mix")
             audio_path = wav
             block_seconds = _procedural_mix()
+    elif require_ai:
+        # engine is "ai" but the API key is missing / unavailable
+        raise SystemExit(
+            "[1/6] MUSIC_ENGINE=ai but ElevenLabs is unavailable "
+            "(ELEVENLABS_API_KEY not set or invalid). Refusing to publish a "
+            "procedural mix — aborting. (Set ALLOW_PROCEDURAL_FALLBACK=1 to override.)")
     else:
         if music_engine == "ai":
             print("[1/6] ELEVENLABS_API_KEY not set; using the procedural mix")

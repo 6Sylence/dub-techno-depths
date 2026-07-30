@@ -44,9 +44,21 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
         f"Bass-boosted EDM / Melbourne bounce / electro house in the style of a "
         f"'car music' bass-boosted mix. Huge punchy kick, deep boosted sub bass, "
         f"a bouncing detuned 'donk' bassline, bright detuned supersaw drop lead, "
-        f"a catchy repeating topline hook, energetic chopped vocal hooks, hard "
-        f"festival drop, loud commercial master. {title} vibe, {mood}. "
-        f"Around {bpm} BPM.{extra}"
+        f"a catchy repeating topline hook, hard festival drop, loud commercial "
+        f"master. "
+        # Original anthem-style vocal hooks that FEEL familiar in the genre — an
+        # earworm crowd chant using only generic party shout phrases ("let's go",
+        # "hands up", "hey!", "oh-oh-oh", "here we go", "jump") and catchy 'na-na'/
+        # 'oh-oh' vowel chants that stick on first listen.
+        f"Add an infectious, sing-along anthem vocal hook: catchy gang/crowd "
+        f"chants and 'oh-oh-oh' / 'na-na-na' vowel hooks using only generic party "
+        f"shout phrases (let's go, hands up, hey, jump, here we go), stadium-anthem "
+        f"energy, instantly memorable. "
+        # Legal + Content-ID safety: 100% original, never a real song.
+        f"The vocal hook and melody must be 100% original and must NOT imitate, "
+        f"quote, interpolate or resemble any existing song, artist, lyric or "
+        f"melody. "
+        f"{title} vibe, {mood}. Around {bpm} BPM.{extra}"
     )
 
 

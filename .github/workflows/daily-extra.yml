@@ -53,8 +53,12 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          # Free procedural engine only — no ElevenLabs, no credits spent.
-          MUSIC_ENGINE: procedural
+          # Use ElevenLabs like the morning slot so published mixes are never the
+          # old procedural engine. The pipeline aborts (does not upload) if the
+          # AI music is unavailable, so a bad mix can never go live.
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
