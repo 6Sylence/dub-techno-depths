@@ -122,9 +122,19 @@ def main(argv=None) -> int:
                   and not args.no_upload and not allow_fallback)
 
     if args.vertical:
-        # Shorts stay procedural (a 60 s clip isn't worth AI credits).
-        print("[1/6] synthesizing audio…")
-        write_wav(audio.render_loop(preset["audio"], args.loop_seconds, seed=seed), wav)
+        # Shorts are the discovery engine, so give them a real AI drop: generate
+        # a short peak-energy track and cut its highest-energy window (the drop).
+        # Falls back to the procedural engine only if AI is off / out of credits.
+        src = (ai_music.generate_drop(preset, primary, args.loop_seconds, out_dir, seed=seed)
+               if music_engine == "ai" and ai_music.available() else None)
+        if src:
+            start = ai_music.best_window_start(src, args.loop_seconds)
+            print(f"[1/6] AI Short: cutting the drop at {start:.0f}s of the track…")
+            run(["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-i", str(src),
+                 "-t", f"{args.loop_seconds:.2f}", "-ac", "2", "-ar", "44100", str(wav)])
+        else:
+            print("[1/6] synthesizing Short audio (procedural)…")
+            write_wav(audio.render_loop(preset["audio"], args.loop_seconds, seed=seed), wav)
     elif music_engine == "ai" and ai_music.available():
         n_tr = int(_env("AI_TRACKS", "4") or "4")
         ts = float(_env("AI_TRACK_SECONDS", "180") or "180")

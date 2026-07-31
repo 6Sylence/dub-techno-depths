@@ -82,6 +82,61 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
     )
 
 
+def build_drop_prompt(preset: dict, primary: str) -> str:
+    """Prompt tuned for a Short: a punchy piece that hits the biggest drop right
+    away (no long intro) so the best 60 s is pure peak energy."""
+    return build_prompt(
+        preset, primary,
+        "Start immediately on the biggest festival drop — no intro, no long "
+        "build — pure peak-time energy the whole way, with the anthem vocal hook "
+        "hitting in the first few seconds.")
+
+
+def best_window_start(path: str | Path, want_seconds: float,
+                      analyze_sr: int = 8000) -> float:
+    """Return the start time (s) of the highest-energy `want_seconds` window —
+    i.e. the drop. Decodes to mono PCM and scans 1 s RMS windows."""
+    import subprocess
+
+    import numpy as np
+    out = subprocess.run(
+        ["ffmpeg", "-v", "quiet", "-i", str(path), "-ac", "1",
+         "-ar", str(analyze_sr), "-f", "f32le", "-"], capture_output=True)
+    x = np.frombuffer(out.stdout, dtype=np.float32)
+    total = x.size / analyze_sr
+    if x.size == 0 or total <= want_seconds:
+        return 0.0
+    win = analyze_sr                                            # 1 s windows
+    n = x.size // win
+    e = np.sqrt(np.mean(np.abs(x[:n * win].reshape(n, win)) ** 2, axis=1))
+    w = max(1, int(want_seconds))
+    if n <= w:
+        return 0.0
+    csum = np.concatenate([[0.0], np.cumsum(e)])
+    sums = csum[w:] - csum[:-w]                                 # energy per window
+    start = float(np.argmax(sums))
+    return min(start, max(0.0, total - want_seconds))
+
+
+def generate_drop(preset: dict, primary: str, want_seconds: float,
+                  out_dir: str | Path, seed: int = 0) -> Path | None:
+    """Generate one short peak-energy AI track for a Short. Returns the file, or
+    None if the credit balance is too low (caller falls back to procedural)."""
+    gen_s = want_seconds + 6                                    # a little extra to trim from
+    rem = remaining_credits()
+    if rem is not None and (rem - CREDIT_RESERVE) < gen_s * CREDITS_PER_SECOND:
+        print(f"    [credit guard] ~{int(rem)} credits left; Short uses the "
+              f"procedural engine this run")
+        return None
+    dest = Path(out_dir) / "ai_short.mp3"
+    try:
+        return generate_track(build_drop_prompt(preset, primary),
+                              int(gen_s * 1000), dest)
+    except AIMusicError as exc:
+        print(f"    AI Short generation failed: {exc}")
+        return None
+
+
 def generate_track(prompt: str, length_ms: int, out_path: str | Path,
                    output_format: str = "mp3_44100_128", timeout: int = 300) -> Path:
     """Generate one track and write the audio bytes to ``out_path``.

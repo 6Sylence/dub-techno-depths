@@ -52,6 +52,10 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          # The Short uses a real ElevenLabs AI drop (best 60 s of a peak-energy
+          # track), falling back to the procedural engine only if credits run low.
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
           VERTICAL: "1"
           LOOP_SECONDS: "60"
           TARGET_SECONDS: "60"
