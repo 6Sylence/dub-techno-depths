@@ -62,7 +62,9 @@ def main(argv=None) -> int:
     date = _dt.date.fromisoformat(args.date) if args.date else _dt.datetime.utcnow().date()
 
     presets = load_presets(args.config)
-    preset = select_preset(presets, date, args.preset, offset=args.slot)
+    import yaml
+    rotation = yaml.safe_load(open(args.config, encoding="utf-8")).get("rotation")
+    preset = select_preset(presets, date, args.preset, offset=args.slot, rotation=rotation)
     seed = daily_seed(date, f"{preset['id']}#s{args.slot}")
     # Manual dispatches must never clone that day's scheduled upload: salt the
     # seed with the unique run id so ad-hoc runs always produce fresh audio.

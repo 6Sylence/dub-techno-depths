@@ -22,18 +22,27 @@ def load_presets(config_path: str | Path) -> list[dict]:
 
 
 def select_preset(presets: list[dict], date: _dt.date, override_id: str | None = None,
-                  offset: int = 0):
+                  offset: int = 0, rotation: list[str] | None = None):
     """Pick a preset. Rotates by ordinal date unless overridden.
 
     ``offset`` shifts the rotation so different daily upload slots pick different
     presets on the same day (avoids near-duplicate uploads). A stride of 5 keeps
     the two slots well separated across the current library.
+
+    ``rotation`` (a list of preset ids, from the config) sets the order and how
+    often each preset appears — e.g. weighting car/driving higher. When absent,
+    falls back to a uniform sweep over the preset list.
     """
     if override_id:
         for p in presets:
             if p["id"] == override_id:
                 return p
         raise SystemExit(f"Unknown preset id: {override_id!r}")
+    if rotation:
+        by_id = {p["id"]: p for p in presets}
+        seq = [by_id[rid] for rid in rotation if rid in by_id]
+        if seq:
+            return seq[(date.toordinal() + offset * 5) % len(seq)]
     return presets[(date.toordinal() + offset * 5) % len(presets)]
 
 

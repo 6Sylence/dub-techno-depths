@@ -60,9 +60,20 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
     title = preset.get("title", "EDM")
     mood = (primary or "energy").lower()
     extra = f" {variant}." if variant else ""
+    # Car / driving is the channel's best-performing theme, so lean hard into it
+    # whenever the preset is that lane: an unmistakable night-drive character.
+    themes = " ".join(preset.get("theme_words", [])).lower() + " " + title.lower()
+    is_car = any(k in themes for k in ("car", "drive", "driving", "cruise", "highway"))
+    drive_flavor = (
+        "A cinematic night-drive / car-music anthem: the feel of cruising a neon "
+        "highway at 2am, windows down, city lights streaking by. Deep trunk-"
+        "rattling boosted sub bass tuned for car speakers, a hypnotic rolling "
+        "bounce groove, smooth but heavy, wide and glossy. "
+    ) if is_car else ""
     return (
         f"Bass-boosted EDM / Melbourne bounce / electro house in the style of a "
-        f"'car music' bass-boosted mix. Huge punchy kick, deep boosted sub bass, "
+        f"'car music' bass-boosted mix. {drive_flavor}"
+        f"Huge punchy kick, deep boosted sub bass, "
         f"a bouncing detuned 'donk' bassline, bright detuned supersaw drop lead, "
         f"a catchy repeating topline hook, hard festival drop, loud commercial "
         f"master. "

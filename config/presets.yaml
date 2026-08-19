@@ -6,6 +6,23 @@
 # audio.style: bounce | bigroom | electro -> selects the low-end/lead flavour.
 # visual.*: consumed by src/video.py (neon synthwave gradient + glow + beat pulse).
 
+# Rotation order (indexed by date/slot). Car / driving is the best-performing
+# theme, so it's weighted to ~75% of uploads; the rest keep the channel varied.
+# Edit this list to change how often each preset appears.
+rotation:
+  - car_bounce
+  - bass_drive
+  - bounce_night
+  - big_room
+  - night_highway
+  - car_bounce
+  - turbo_drive
+  - festival
+  - bass_drive
+  - bounce_night
+  - electro_house
+  - night_highway
+
 presets:
   # ---------------- BOUNCE ----------------
   - id: bounce_night
@@ -183,3 +200,64 @@ presets:
       vignette: 0.6
       scroll_seconds: 195
       beat_pulse: 0.11
+
+  # ---------------- CAR / DRIVING (best-performing theme) ----------------
+  - id: night_highway
+    title: "Night Highway"
+    theme_words: ["Night Drive", "Highway", "Car Music", "Cruise"]
+    emoji: "🌌"
+    audio:
+      bpm: 124
+      style: bounce
+      progression: [[41, min], [48, maj], [46, min7], [43, sus2]]
+      donk_gain: 1.05
+      donk_drive: 2.0
+      sub_gain: 0.8
+      chord_gain: 0.82
+      lead_gain: 0.68
+      bass_boost: 0.52
+      loudness: 1.29
+      sidechain: 0.83
+      vocal_gain: 0.55
+      vowel: "oh"
+      master_cut: 16500
+    visual:
+      style: synthwave
+      palette: ["#050a24", "#0e1f52", "#2f6bff", "#40b8ff"]
+      effect: stars
+      effect_density: 1.0
+      mist_opacity: 36
+      grain: 0.045
+      vignette: 0.62
+      scroll_seconds: 200
+      beat_pulse: 0.10
+
+  - id: turbo_drive
+    title: "Turbo"
+    theme_words: ["Car Music", "Driving", "Street Race", "Workout"]
+    emoji: "🏎️"
+    audio:
+      bpm: 128
+      style: electro
+      progression: [[45, min], [45, min7], [43, min], [48, sus4]]
+      donk_gain: 1.12
+      donk_drive: 2.4
+      sub_gain: 0.74
+      chord_gain: 0.8
+      lead_gain: 0.78
+      bass_boost: 0.5
+      loudness: 1.31
+      sidechain: 0.86
+      vocal_gain: 0.55
+      vowel: "oh"
+      master_cut: 17500
+    visual:
+      style: synthwave
+      palette: ["#1e0526", "#4a0b2e", "#ff3a2d", "#ff7a2a"]
+      effect: stars
+      effect_density: 1.05
+      mist_opacity: 32
+      grain: 0.05
+      vignette: 0.6
+      scroll_seconds: 190
+      beat_pulse: 0.12
