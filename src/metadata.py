@@ -50,8 +50,71 @@ def _hours_label(seconds: float) -> str:
     return f"{round(seconds / 60)} Min"
 
 
+AURA_TAGS = [
+    "aura", "aura phonk", "phonk", "dreamy phonk", "aesthetic phonk",
+    "drift phonk", "phonk mix", "phonk mix 2026", "aura phonk mix",
+    "atmospheric phonk", "ambient phonk", "chill phonk", "night phonk",
+    "aura aesthetic", "aura edit", "sigma phonk", "phonk music",
+    "aura farming", "phonk 2026", "no copyright phonk",
+]
+
+AURA_LOCALES = {
+    "es": "Aura phonk soñador y atmosférico — phonk estético para conducir de noche, estudiar o desconectar. Un mix nuevo cada día. 🔔",
+    "pt": "Aura phonk sonhador e atmosférico — phonk estético para dirigir à noite, estudar ou relaxar. Um mix novo todo dia. 🔔",
+    "fr": "Aura phonk onirique et atmosphérique — phonk esthétique pour rouler la nuit, étudier ou décompresser. Un nouveau mix chaque jour. 🔔",
+    "de": "Verträumter, atmosphärischer Aura-Phonk — ästhetischer Phonk fürs Nachtfahren, Lernen oder Chillen. Jeden Tag ein neuer Mix. 🔔",
+    "ru": "Мечтательный атмосферный aura phonk — эстетичный фонк для ночной езды и релакса. Новый микс каждый день. 🔔",
+}
+
+
+def _aura_metadata(preset: dict, date: _dt.date, target_seconds: float,
+                   privacy: str) -> dict:
+    words = preset["theme_words"]
+    primary = words[date.timetuple().tm_yday % len(words)]
+    emoji = preset.get("emoji", "🌌")
+    dur = _hours_label(target_seconds)
+    year = date.year
+
+    title = f"{emoji} Aura Phonk Mix {year} — {primary} | Dreamy Aesthetic Phonk"[:100].strip()
+
+    description = f"""{emoji} Aura Phonk Mix {year} — {dur} of dreamy, atmospheric phonk. Reverb-soaked 808s, soft cowbell melodies and glowing ethereal pads for that late-night 'aura' aesthetic.
+
+Perfect for night drives, studying, gaming or locking in. It loops seamlessly.
+
+🎧 About this channel
+Every mix on {CHANNEL_NAME} is generated from scratch — 100% original music and visuals, no samples and no re-uploads, completely copyright-safe.
+
+🔔 New mixes every day. Subscribe and turn on notifications.
+
+#aura #phonk #auraphonk #dreamyphonk #{primary.lower().replace(' ', '')} #aesthetic"""
+    description = description.strip()
+    aff = _affiliate_block()
+    if aff:
+        description = description.replace("🎧 About this channel", aff + "\n\n🎧 About this channel")
+
+    tags, seen, final, budget = [w.lower() for w in words] + [preset["title"].lower()] + AURA_TAGS, set(), [], 0
+    for t in tags:
+        if t in seen:
+            continue
+        seen.add(t)
+        if budget + len(t) + 1 > 480:
+            break
+        final.append(t)
+        budget += len(t) + 1
+
+    loc = {lang: {"title": title, "description": desc} for lang, desc in AURA_LOCALES.items()}
+    return {
+        "title": title, "description": description, "tags": final,
+        "categoryId": "10", "privacyStatus": privacy,
+        "thumbnail_title": preset["title"], "thumbnail_subtitle": f"{primary} • {dur}",
+        "localizations": loc, "playlist": "Aura Phonk",
+    }
+
+
 def build_metadata(preset: dict, date: _dt.date, target_seconds: float,
                    privacy: str = "public") -> dict:
+    if preset.get("genre") == "aura_phonk":
+        return _aura_metadata(preset, date, target_seconds, privacy)
     words = preset["theme_words"]
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")

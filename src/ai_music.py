@@ -60,6 +60,25 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
     title = preset.get("title", "EDM")
     mood = (primary or "energy").lower()
     extra = f" {variant}." if variant else ""
+
+    # AURA PHONK lane (trending): a completely different, dreamy/atmospheric
+    # phonk sound — not the EDM formula above.
+    if preset.get("genre") == "aura_phonk":
+        return (
+            f"Dreamy atmospheric aura phonk / ethereal drift phonk. "
+            f"A hypnotic half-time groove with a deep reverb-drenched 808 bass "
+            f"that slides and bends, soft Memphis cowbell melody, punchy but "
+            f"washed-out drums, and glowing ethereal synth pads with lush reverb. "
+            f"A nostalgic, moody, 'aura' aesthetic — cinematic, immersive and "
+            f"slightly melancholic, like a neon dream at night. Airy, wordless "
+            f"ethereal vocal 'ahh' chops floating far back in the mix. "
+            f"Cohesive and hypnotic rather than a build-and-drop. "
+            # Legal + Content-ID safety.
+            f"The melody must be 100% original and must NOT imitate, quote or "
+            f"resemble any existing song, artist or track. "
+            f"{mood} mood. Around {bpm} BPM.{extra}"
+        )
+
     # Car / driving is the channel's best-performing theme, so lean hard into it
     # whenever the preset is that lane: an unmistakable night-drive character.
     themes = " ".join(preset.get("theme_words", [])).lower() + " " + title.lower()

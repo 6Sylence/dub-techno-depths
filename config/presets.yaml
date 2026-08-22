@@ -23,6 +23,12 @@ rotation:
   - electro_house
   - night_highway
 
+# Rotation for the AURA-phonk daily slot (ROTATION=aura). Only aura presets.
+rotation_aura:
+  - aura_midnight
+  - aura_dream
+  - aura_ethereal
+
 presets:
   # ---------------- BOUNCE ----------------
   - id: bounce_night
@@ -261,3 +267,99 @@ presets:
       vignette: 0.6
       scroll_seconds: 190
       beat_pulse: 0.12
+
+  # ---------------- AURA PHONK (trending: dreamy / atmospheric phonk) ----------
+  # genre: aura_phonk switches the AI prompt + metadata to the aura-phonk lane.
+  # Used by the second daily upload (slot 1). Visuals are glowing aura gradients.
+  - id: aura_midnight
+    title: "Aura"
+    genre: aura_phonk
+    theme_words: ["Aura", "Dreamy", "Night", "Aesthetic"]
+    emoji: "🌌"
+    audio:
+      bpm: 140
+      style: electro
+      progression: [[45, min], [48, min7], [43, min], [50, sus2]]
+      donk_gain: 0.6
+      donk_drive: 1.4
+      sub_gain: 0.85
+      chord_gain: 0.9
+      lead_gain: 0.6
+      bass_boost: 0.5
+      loudness: 1.2
+      sidechain: 0.7
+      vocal_gain: 0.4
+      vowel: "oo"
+      master_cut: 15000
+    visual:
+      style: synthwave
+      palette: ["#0a0420", "#2a0a4a", "#7a2cff", "#c060ff"]
+      effect: stars
+      effect_density: 1.1
+      mist_opacity: 42
+      grain: 0.05
+      vignette: 0.66
+      scroll_seconds: 220
+      beat_pulse: 0.07
+
+  - id: aura_dream
+    title: "Dream Phonk"
+    genre: aura_phonk
+    theme_words: ["Aura", "Dream", "Chill", "Aesthetic"]
+    emoji: "🟣"
+    audio:
+      bpm: 138
+      style: electro
+      progression: [[43, min], [50, maj], [45, min7], [48, sus2]]
+      donk_gain: 0.55
+      donk_drive: 1.3
+      sub_gain: 0.85
+      chord_gain: 0.95
+      lead_gain: 0.6
+      bass_boost: 0.48
+      loudness: 1.18
+      sidechain: 0.68
+      vocal_gain: 0.4
+      vowel: "oo"
+      master_cut: 14500
+    visual:
+      style: synthwave
+      palette: ["#04061e", "#1a0a44", "#4a3cff", "#9a6cff"]
+      effect: stars
+      effect_density: 1.15
+      mist_opacity: 44
+      grain: 0.05
+      vignette: 0.66
+      scroll_seconds: 225
+      beat_pulse: 0.07
+
+  - id: aura_ethereal
+    title: "Ethereal Aura"
+    genre: aura_phonk
+    theme_words: ["Aura", "Ethereal", "Night", "Study"]
+    emoji: "✨"
+    audio:
+      bpm: 142
+      style: electro
+      progression: [[41, min], [48, maj], [46, min7], [43, min]]
+      donk_gain: 0.6
+      donk_drive: 1.4
+      sub_gain: 0.82
+      chord_gain: 0.92
+      lead_gain: 0.58
+      bass_boost: 0.5
+      loudness: 1.2
+      sidechain: 0.7
+      vocal_gain: 0.4
+      vowel: "oo"
+      master_cut: 15000
+    visual:
+      style: synthwave
+      palette: ["#050820", "#221046", "#6a2cff", "#40d0ff"]
+      effect: stars
+      effect_density: 1.1
+      mist_opacity: 42
+      grain: 0.05
+      vignette: 0.64
+      scroll_seconds: 215
+      beat_pulse: 0.07

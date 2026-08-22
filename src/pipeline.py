@@ -63,7 +63,11 @@ def main(argv=None) -> int:
 
     presets = load_presets(args.config)
     import yaml
-    rotation = yaml.safe_load(open(args.config, encoding="utf-8")).get("rotation")
+    _cfg = yaml.safe_load(open(args.config, encoding="utf-8"))
+    # ROTATION selects a themed rotation list (e.g. "aura" -> rotation_aura) so
+    # each daily slot can stick to its own category; falls back to the general one.
+    _rot_key = os.environ.get("ROTATION", "").strip()
+    rotation = (_cfg.get(f"rotation_{_rot_key}") if _rot_key else None) or _cfg.get("rotation")
     preset = select_preset(presets, date, args.preset, offset=args.slot, rotation=rotation)
     seed = daily_seed(date, f"{preset['id']}#s{args.slot}")
     # Manual dispatches must never clone that day's scheduled upload: salt the

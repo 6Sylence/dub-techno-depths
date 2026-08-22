@@ -1,13 +1,12 @@
-name: Daily EDM upload (extra, procedural)
+name: Daily Aura Phonk upload
 
-# A SECOND free upload each day, rendered with the in-house procedural engine
-# (numpy) instead of ElevenLabs — so it costs zero API credits and stays fully
-# commercial-safe (100% original audio). It uses SLOT=1, which shifts the preset
-# rotation (stride 5) and salts the seed, so it never clones that day's AI video.
+# The SECOND daily upload: an AURA-PHONK mix (ROTATION=aura), a different lane
+# from the car-music morning slot, both rendered with ElevenLabs Music. SLOT=1
+# shifts the rotation and salts the seed so it never clones the morning video.
 #
-# 01:07 UTC targets the US night-drive window (21:07 EDT / 18:07 PDT) — prime
-# time for "car music" — while the primary AI upload lands the US+EU daytime
-# peak at 17:07 UTC. Minute :07 avoids GitHub's congested top-of-hour slot.
+# 01:07 UTC targets the US night window (21:07 EDT / 18:07 PDT) — prime time for
+# dreamy night-drive/aura content — while the car-music upload lands the US+EU
+# daytime peak at 17:07 UTC. Minute :07 avoids GitHub's congested top-of-hour.
 on:
   schedule:
     - cron: "7 1 * * *"
@@ -59,9 +58,12 @@ jobs:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
-          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '90' }}
+          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS_AURA || '120' }}
+          # This slot is the AURA-phonk video (trending): a different category
+          # from the car-music morning slot, so the channel runs two lanes.
+          ROTATION: aura
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
-          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS_AURA || '1200' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
           SLOT: "1"
           AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
