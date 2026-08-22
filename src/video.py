@@ -668,25 +668,37 @@ def build_audio_concat_cmd(audio_files: list[str], out_file: str,
             "-movflags", "+faststart", out_file]
 
 
-def build_voice_mix_cmd(beat_file: str, voice_file: str, out_file: str,
-                        delay_s: float = 1.5) -> list[str]:
-    """Mix a spoken voice hook over the beat as a recurring vocal tag: the voice
-    comes in after `delay_s`, the beat ducks under it (sidechain compression) so
-    the words cut through, then a limiter tames the peaks. Output length == beat
-    length (the voice plays once near the top of each looped block)."""
-    delay_ms = int(max(0.0, delay_s) * 1000)
-    # apad pads the (short) voice with trailing silence so the sidechain covers
-    # the whole beat — otherwise sidechaincompress would end with the voice and
-    # truncate the track to the hook length.
-    fc = (
-        f"[1:a]adelay={delay_ms}|{delay_ms},volume=2.2,apad[vox];"
-        "[vox]asplit=2[voxA][voxB];"
-        "[0:a][voxA]sidechaincompress=threshold=0.04:ratio=8:attack=5:release=320[duck];"
-        "[duck][voxB]amix=inputs=2:duration=first:normalize=0,"
-        "alimiter=limit=0.97[a]"
-    )
-    return ["ffmpeg", "-y", "-i", beat_file, "-i", voice_file,
-            "-filter_complex", fc, "-map", "[a]",
+def build_voice_mix_cmd(beat_file: str, voice_specs, out_file: str) -> list[str]:
+    """Mix one or more spoken voice lines over the beat as an arrangement: each
+    line comes in at its own offset, the beat ducks under the combined voice
+    (sidechain compression) so the words cut through, then a limiter tames the
+    peaks. Output length == beat length (the lines play once per looped block).
+
+    ``voice_specs`` is a list of (path, delay_seconds) — e.g. an intro at 1.5s, a
+    hook at 40% and a bar at 72% of the beat. A single spec also works.
+    """
+    if not voice_specs:
+        raise ValueError("voice_specs is empty")
+    inputs = ["-i", beat_file]
+    parts, labels = [], []
+    for i, (path, delay_s) in enumerate(voice_specs):
+        inputs += ["-i", str(path)]
+        idx = i + 1                                            # input 0 is the beat
+        dms = int(max(0.0, float(delay_s)) * 1000)
+        parts.append(f"[{idx}:a]adelay={dms}|{dms},volume=2.2[v{i}]")
+        labels.append(f"[v{i}]")
+    if len(labels) > 1:                                       # sum the lines into one voice bus
+        parts.append(f"{''.join(labels)}amix=inputs={len(labels)}:normalize=0[voxsum]")
+        vox = "[voxsum]"
+    else:
+        vox = labels[0]
+    # apad pads the voice bus with trailing silence so the sidechain covers the
+    # whole beat — otherwise sidechaincompress would end with the last line and
+    # truncate the track.
+    parts.append(f"{vox}apad,asplit=2[voxA][voxB]")
+    parts.append("[0:a][voxA]sidechaincompress=threshold=0.04:ratio=8:attack=5:release=320[duck]")
+    parts.append("[duck][voxB]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.97[a]")
+    return ["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(parts), "-map", "[a]",
             "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", out_file]
 
 

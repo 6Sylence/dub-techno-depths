@@ -98,28 +98,44 @@ def tts(text: str, voice_id: str, out_path: str | Path,
     return out
 
 
-# Original Spanish spoken hooks for the trap-mafia lane. Clean (monetization-safe):
-# attitude about bass, cars, the night and the grind — no profanity, no explicit
-# violence/drugs. One is picked per upload by seed and stamped with the brand tag.
-_HOOKS = [
-    "Bass Boosted Nation. Sube el volumen. Esto es la mafia del bajo.",
-    "En la noche mando yo. El ochocientos ocho retumba. Siente el poder.",
-    "Aura, motor y bajo. La calle es mía. Bass Boosted Nation.",
-    "Bajos que rompen el asfalto. Nunca paro. Esto es solo el principio.",
-    "Luces de neón, el trap suena fuerte. La ciudad es nuestra esta noche.",
-    "Sin frenos, a todo gas. El bajo manda. Bass Boosted Nation.",
+# Original Spanish spoken lyrics for the trap-mafia lane, written as a small song
+# arrangement: an INTRO tag (brand), a punchy HOOK (the repeated "chorus" line)
+# and a BAR (a verse line). One set is picked per upload by seed; the three lines
+# are placed at spaced points over the beat so it feels arranged, not looped.
+# Clean / monetization-safe: attitude about bass, cars, the night and the grind —
+# no profanity, no explicit violence or drugs.
+_LYRIC_SETS = [
+    {"intro": "Bass Boosted Nation. Sube el volumen, esto es la mafia del bajo.",
+     "hook":  "El ochocientos ocho manda, en la noche mando yo.",
+     "bar":   "Luces de neón, motor en marcha; la ciudad es mía esta noche."},
+    {"intro": "Bass Boosted Nation. Bajos que rompen el asfalto.",
+     "hook":  "A todo gas, sin frenos, el bajo no para.",
+     "bar":   "Vengo del barrio y no me rindo; esto es solo el principio."},
+    {"intro": "Bass Boosted Nation. Aura, motor y bajo.",
+     "hook":  "La calle es mía, nadie me para.",
+     "bar":   "Trabajo en silencio, hablo con hechos; el ritmo es mi respeto."},
+    {"intro": "Bass Boosted Nation. Sientes el bajo en el pecho.",
+     "hook":  "De noche brillo más, la ciudad es mi trono.",
+     "bar":   "Poco a poco, paso a paso, construyendo mi imperio."},
+    {"intro": "Bass Boosted Nation. Enciende el motor, sube el volumen.",
+     "hook":  "El trap retumba fuerte, la mafia del bajo despierta.",
+     "bar":   "Neón y asfalto mojado; esta noche todo es nuestro."},
+    {"intro": "Bass Boosted Nation. Esto suena a calle, esto suena a mafia.",
+     "hook":  "Bajo pesado, cabeza fría, nunca me paran.",
+     "bar":   "Del cero a la cima, sin atajos; el bajo es mi firma."},
 ]
 
 
-def hook_text(seed: int = 0) -> str:
-    return _HOOKS[seed % len(_HOOKS)]
+def lyric_lines(seed: int = 0) -> list[str]:
+    s = _LYRIC_SETS[seed % len(_LYRIC_SETS)]
+    return [s["intro"], s["hook"], s["bar"]]
 
 
-def generate_hook(out_dir: str | Path, seed: int = 0,
-                  voice_name: str | None = None) -> Path | None:
-    """Resolve the cloned voice by name and synthesize one spoken hook. Returns
-    the mp3 path, or None if the voice/TTS is unavailable (caller then just uses
-    the instrumental beat)."""
+def generate_lines(out_dir: str | Path, seed: int = 0,
+                   voice_name: str | None = None) -> list[Path] | None:
+    """Resolve the cloned voice by name and synthesize the three arranged lines
+    (intro / hook / bar). Returns the list of mp3 clips in order, or None if the
+    voice/TTS is unavailable (caller then just uses the instrumental beat)."""
     name = voice_name or os.environ.get("VOICE_NAME", "").strip()
     if not available() or not name:
         return None
@@ -128,11 +144,16 @@ def generate_hook(out_dir: str | Path, seed: int = 0,
         print(f"    [voice] voice '{name}' not found on this ElevenLabs account; "
               f"publishing the instrumental beat")
         return None
-    dest = Path(out_dir) / "voice_hook.mp3"
-    try:
-        tts(hook_text(seed), vid, dest)
-        print(f"    [voice] cloned-voice hook ready ({name})")
-        return dest
-    except AIVoiceError as exc:
-        print(f"    [voice] TTS failed ({exc}); publishing the instrumental beat")
+    clips: list[Path] = []
+    for i, text in enumerate(lyric_lines(seed)):
+        dest = Path(out_dir) / f"voice_{i}.mp3"
+        try:
+            tts(text, vid, dest)
+            clips.append(dest)
+        except AIVoiceError as exc:
+            print(f"    [voice] TTS line {i} failed ({exc})")
+    if not clips:
+        print("    [voice] no voice lines synthesized; publishing the instrumental beat")
         return None
+    print(f"    [voice] cloned-voice arrangement ready ({name}): {len(clips)} line(s)")
+    return clips

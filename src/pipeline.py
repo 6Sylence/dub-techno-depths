@@ -181,13 +181,20 @@ def main(argv=None) -> int:
     # instrumental beat is published unchanged (upload never breaks over it).
     if not args.vertical and preset.get("genre") == "trap_mafia":
         try:
-            vhook = ai_voice.generate_hook(out_dir, seed=seed)
-            if vhook:
+            clips = ai_voice.generate_lines(out_dir, seed=seed)
+            if clips:
+                # Place the arranged lines across the beat block: intro near the
+                # top, then the hook and the bar spaced out (fractions of the
+                # block length, so it adapts to any block duration).
+                block = block_seconds or _audio_seconds(audio_path)
+                fracs = [0.02, 0.42, 0.72][:len(clips)]
+                specs = [(c, round(f * block, 2)) for c, f in zip(clips, fracs)]
                 voiced = out_dir / "audio_voiced.m4a"
-                run(video.build_voice_mix_cmd(str(audio_path), str(vhook), str(voiced)))
+                run(video.build_voice_mix_cmd(str(audio_path), specs, str(voiced)))
                 audio_path = voiced
                 block_seconds = _audio_seconds(voiced)
-                print("    [voice] cloned voice mixed over the beat")
+                print(f"    [voice] cloned voice arranged over the beat "
+                      f"({len(clips)} line(s))")
         except Exception as exc:
             print(f"    [voice] mix skipped ({exc}); using the instrumental beat")
 
