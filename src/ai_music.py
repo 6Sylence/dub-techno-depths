@@ -61,18 +61,19 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
     mood = (primary or "energy").lower()
     extra = f" {variant}." if variant else ""
 
-    # AURA PHONK lane (trending): a completely different, dreamy/atmospheric
-    # phonk sound — not the EDM formula above.
+    # AURA PHONK lane (the viral 'aura farming' sound): hard, cocky drift phonk /
+    # Brazilian phonk with swagger — NOT dreamy, and NOT the EDM formula above.
     if preset.get("genre") == "aura_phonk":
         return (
-            f"Dreamy atmospheric aura phonk / ethereal drift phonk. "
-            f"A hypnotic half-time groove with a deep reverb-drenched 808 bass "
-            f"that slides and bends, soft Memphis cowbell melody, punchy but "
-            f"washed-out drums, and glowing ethereal synth pads with lush reverb. "
-            f"A nostalgic, moody, 'aura' aesthetic — cinematic, immersive and "
-            f"slightly melancholic, like a neon dream at night. Airy, wordless "
-            f"ethereal vocal 'ahh' chops floating far back in the mix. "
-            f"Cohesive and hypnotic rather than a build-and-drop. "
+            f"Hard-hitting 'aura farming' phonk — the confident, swaggy drift "
+            f"phonk / Brazilian phonk sound behind viral aura-farming edits. "
+            f"A heavy distorted 808 bass that slides and bends, an aggressive "
+            f"in-your-face Memphis cowbell melody, hard punchy trap drums with "
+            f"crisp hi-hat rolls and a slamming kick, and a dark cinematic synth "
+            f"lead. Cocky, hypnotic 'main character' / sigma energy — sleek, "
+            f"nocturnal and full of attitude, like slow-motion walking away from "
+            f"an explosion. The cowbell riff is the catchy hook and hits hard "
+            f"and early. Relentless drift-phonk groove, loud aggressive master. "
             # Legal + Content-ID safety.
             f"The melody must be 100% original and must NOT imitate, quote or "
             f"resemble any existing song, artist or track. "

@@ -268,98 +268,99 @@ presets:
       scroll_seconds: 190
       beat_pulse: 0.12
 
-  # ---------------- AURA PHONK (trending: dreamy / atmospheric phonk) ----------
+  # -------- AURA FARMING PHONK (viral trend: hard, cocky drift phonk) ----------
   # genre: aura_phonk switches the AI prompt + metadata to the aura-phonk lane.
-  # Used by the second daily upload (slot 1). Visuals are glowing aura gradients.
+  # The 'aura farming' sound is hard-hitting drift / Brazilian phonk with swagger
+  # (heavy 808 + aggressive cowbell), NOT dreamy — see build_prompt in ai_music.py.
   - id: aura_midnight
-    title: "Aura"
+    title: "Aura Farming"
     genre: aura_phonk
-    theme_words: ["Aura", "Dreamy", "Night", "Aesthetic"]
+    theme_words: ["Aura Farming", "Sigma", "Phonk", "Night Drive"]
     emoji: "🌌"
     audio:
-      bpm: 140
+      bpm: 150
       style: electro
       progression: [[45, min], [48, min7], [43, min], [50, sus2]]
-      donk_gain: 0.6
-      donk_drive: 1.4
-      sub_gain: 0.85
-      chord_gain: 0.9
-      lead_gain: 0.6
-      bass_boost: 0.5
-      loudness: 1.2
-      sidechain: 0.7
-      vocal_gain: 0.4
-      vowel: "oo"
-      master_cut: 15000
+      donk_gain: 1.08
+      donk_drive: 2.3
+      sub_gain: 0.9
+      chord_gain: 0.8
+      lead_gain: 0.72
+      bass_boost: 0.55
+      loudness: 1.3
+      sidechain: 0.8
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16500
     visual:
       style: synthwave
       palette: ["#0a0420", "#2a0a4a", "#7a2cff", "#c060ff"]
       effect: stars
       effect_density: 1.1
-      mist_opacity: 42
+      mist_opacity: 26
       grain: 0.05
-      vignette: 0.66
-      scroll_seconds: 220
-      beat_pulse: 0.07
+      vignette: 0.64
+      scroll_seconds: 210
+      beat_pulse: 0.13
 
   - id: aura_dream
-    title: "Dream Phonk"
+    title: "Drift Phonk"
     genre: aura_phonk
-    theme_words: ["Aura", "Dream", "Chill", "Aesthetic"]
+    theme_words: ["Aura", "Drift Phonk", "Sigma", "Gym"]
     emoji: "🟣"
     audio:
-      bpm: 138
+      bpm: 148
       style: electro
       progression: [[43, min], [50, maj], [45, min7], [48, sus2]]
-      donk_gain: 0.55
-      donk_drive: 1.3
-      sub_gain: 0.85
-      chord_gain: 0.95
-      lead_gain: 0.6
-      bass_boost: 0.48
-      loudness: 1.18
-      sidechain: 0.68
-      vocal_gain: 0.4
-      vowel: "oo"
-      master_cut: 14500
+      donk_gain: 1.05
+      donk_drive: 2.2
+      sub_gain: 0.9
+      chord_gain: 0.82
+      lead_gain: 0.7
+      bass_boost: 0.54
+      loudness: 1.3
+      sidechain: 0.78
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16500
     visual:
       style: synthwave
       palette: ["#04061e", "#1a0a44", "#4a3cff", "#9a6cff"]
       effect: stars
       effect_density: 1.15
-      mist_opacity: 44
+      mist_opacity: 28
       grain: 0.05
-      vignette: 0.66
-      scroll_seconds: 225
-      beat_pulse: 0.07
+      vignette: 0.64
+      scroll_seconds: 215
+      beat_pulse: 0.13
 
   - id: aura_ethereal
-    title: "Ethereal Aura"
+    title: "Sigma Phonk"
     genre: aura_phonk
-    theme_words: ["Aura", "Ethereal", "Night", "Study"]
+    theme_words: ["Aura Farming", "Sigma", "Phonk", "Gaming"]
     emoji: "✨"
     audio:
-      bpm: 142
+      bpm: 152
       style: electro
       progression: [[41, min], [48, maj], [46, min7], [43, min]]
-      donk_gain: 0.6
-      donk_drive: 1.4
-      sub_gain: 0.82
-      chord_gain: 0.92
-      lead_gain: 0.58
-      bass_boost: 0.5
-      loudness: 1.2
-      sidechain: 0.7
-      vocal_gain: 0.4
-      vowel: "oo"
-      master_cut: 15000
+      donk_gain: 1.1
+      donk_drive: 2.4
+      sub_gain: 0.88
+      chord_gain: 0.8
+      lead_gain: 0.74
+      bass_boost: 0.55
+      loudness: 1.31
+      sidechain: 0.8
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16500
     visual:
       style: synthwave
       palette: ["#050820", "#221046", "#6a2cff", "#40d0ff"]
       effect: stars
       effect_density: 1.1
-      mist_opacity: 42
+      mist_opacity: 26
       grain: 0.05
-      vignette: 0.64
-      scroll_seconds: 215
-      beat_pulse: 0.07
+      vignette: 0.62
+      scroll_seconds: 210
+      beat_pulse: 0.13

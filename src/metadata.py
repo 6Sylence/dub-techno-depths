@@ -51,19 +51,19 @@ def _hours_label(seconds: float) -> str:
 
 
 AURA_TAGS = [
-    "aura", "aura phonk", "phonk", "dreamy phonk", "aesthetic phonk",
-    "drift phonk", "phonk mix", "phonk mix 2026", "aura phonk mix",
-    "atmospheric phonk", "ambient phonk", "chill phonk", "night phonk",
-    "aura aesthetic", "aura edit", "sigma phonk", "phonk music",
-    "aura farming", "phonk 2026", "no copyright phonk",
+    "aura farming", "aura", "aura phonk", "phonk", "drift phonk", "sigma phonk",
+    "sigma", "aura farming phonk", "brazilian phonk", "phonk edit", "aura edit",
+    "phonk mix", "phonk mix 2026", "aura phonk mix", "gym phonk", "workout phonk",
+    "gigachad", "aesthetic phonk", "phonk music", "aura aesthetic",
+    "phonk 2026", "no copyright phonk",
 ]
 
 AURA_LOCALES = {
-    "es": "Aura phonk soñador y atmosférico — phonk estético para conducir de noche, estudiar o desconectar. Un mix nuevo cada día. 🔔",
-    "pt": "Aura phonk sonhador e atmosférico — phonk estético para dirigir à noite, estudar ou relaxar. Um mix novo todo dia. 🔔",
-    "fr": "Aura phonk onirique et atmosphérique — phonk esthétique pour rouler la nuit, étudier ou décompresser. Un nouveau mix chaque jour. 🔔",
-    "de": "Verträumter, atmosphärischer Aura-Phonk — ästhetischer Phonk fürs Nachtfahren, Lernen oder Chillen. Jeden Tag ein neuer Mix. 🔔",
-    "ru": "Мечтательный атмосферный aura phonk — эстетичный фонк для ночной езды и релакса. Новый микс каждый день. 🔔",
+    "es": "Aura farming phonk — drift phonk con actitud, 808 potentes y cowbell para el gimnasio, conducir de noche o gaming. Un mix nuevo cada día. 🔔",
+    "pt": "Aura farming phonk — drift phonk com atitude, 808 pesado e cowbell pra academia, dirigir à noite ou gaming. Um mix novo todo dia. 🔔",
+    "fr": "Aura farming phonk — drift phonk avec de l'attitude, 808 lourdes et cowbell pour la muscu, rouler la nuit ou le gaming. Un nouveau mix chaque jour. 🔔",
+    "de": "Aura-Farming-Phonk — Drift Phonk mit Attitude, harte 808 und Cowbell fürs Gym, Nachtfahren oder Gaming. Jeden Tag ein neuer Mix. 🔔",
+    "ru": "Aura farming phonk — дрифт-фонк с характером, тяжёлые 808 и каубелл для зала, ночной езды и гейминга. Новый микс каждый день. 🔔",
 }
 
 
@@ -75,18 +75,18 @@ def _aura_metadata(preset: dict, date: _dt.date, target_seconds: float,
     dur = _hours_label(target_seconds)
     year = date.year
 
-    title = f"{emoji} Aura Phonk Mix {year} — {primary} | Dreamy Aesthetic Phonk"[:100].strip()
+    title = f"{emoji} Aura Farming Phonk Mix {year} — {primary} | Sigma Drift Phonk"[:100].strip()
 
-    description = f"""{emoji} Aura Phonk Mix {year} — {dur} of dreamy, atmospheric phonk. Reverb-soaked 808s, soft cowbell melodies and glowing ethereal pads for that late-night 'aura' aesthetic.
+    description = f"""{emoji} Aura Farming Phonk Mix {year} — {dur} of hard, cocky drift phonk. Heavy distorted 808s, aggressive cowbell melodies and dark cinematic synths — the viral 'aura farming' sound, pure sigma main-character energy.
 
-Perfect for night drives, studying, gaming or locking in. It loops seamlessly.
+Perfect for the gym, night drives, gaming or locking in. It loops seamlessly.
 
 🎧 About this channel
 Every mix on {CHANNEL_NAME} is generated from scratch — 100% original music and visuals, no samples and no re-uploads, completely copyright-safe.
 
 🔔 New mixes every day. Subscribe and turn on notifications.
 
-#aura #phonk #auraphonk #dreamyphonk #{primary.lower().replace(' ', '')} #aesthetic"""
+#aurafarming #phonk #driftphonk #sigmaphonk #{primary.lower().replace(' ', '')} #aura"""
     description = description.strip()
     aff = _affiliate_block()
     if aff:
