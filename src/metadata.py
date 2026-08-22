@@ -114,10 +114,70 @@ Every aura farming mix on {CHANNEL_NAME} is generated from scratch — 100% orig
     }
 
 
+TRAP_TAGS = [
+    "trap", "trap mafia", "mafia trap", "trap bass boosted", "bass boosted trap",
+    "trap español", "trap latino", "trap 2026", "trap pesado", "trap oscuro",
+    "trap beat", "bass boosted", "trap music", "trap mix", "trap mix 2026",
+    "type beat", "hard trap", "trap instrumental", "no copyright trap",
+]
+
+TRAP_LOCALES = {
+    "es": "Trap mafia bass boosted en español — 808 pesados, hi-hats duros y voz en español. Un mix nuevo cada día. 🔔",
+    "en": "Spanish mafia bass-boosted trap — heavy 808s, hard hi-hats and Spanish vocals. New mix every day. 🔔",
+    "pt": "Trap mafia bass boosted em espanhol — 808 pesados e vocais em espanhol. Um mix novo todo dia. 🔔",
+}
+
+
+def _trap_metadata(preset: dict, date: _dt.date, target_seconds: float,
+                   privacy: str) -> dict:
+    words = preset["theme_words"]
+    primary = words[date.timetuple().tm_yday % len(words)]
+    emoji = preset.get("emoji", "🖤")
+    dur = _hours_label(target_seconds)
+    year = date.year
+
+    title = f"{emoji} TRAP MAFIA Bass Boosted {year} — {primary} | Trap Español Pesado"[:100].strip()
+
+    description = f"""{emoji} Trap Mafia Bass Boosted {year} — {dur} de trap oscuro en español con voz propia. 808 que revientan, hi-hats duros y atmósfera de mafia cinematográfica.
+
+Para el coche, el gimnasio o para ir a lo tuyo. Se reproduce en bucle sin cortes.
+
+🎧 Sobre el canal
+Cada mix de {CHANNEL_NAME} está creado desde cero — música y voz 100% originales, sin samples ni reuploads, totalmente libre de copyright.
+
+🔔 Mixes nuevos cada día. Suscríbete y activa la campana.
+
+#trap #trapmafia #bassboosted #trapespañol #{primary.lower().replace(' ', '')} #traplatino"""
+    description = description.strip()
+    aff = _affiliate_block()
+    if aff:
+        description = description.replace("🎧 Sobre el canal", aff + "\n\n🎧 Sobre el canal")
+
+    tags, seen, final, budget = [w.lower() for w in words] + [preset["title"].lower()] + TRAP_TAGS, set(), [], 0
+    for t in tags:
+        if t in seen:
+            continue
+        seen.add(t)
+        if budget + len(t) + 1 > 480:
+            break
+        final.append(t)
+        budget += len(t) + 1
+
+    loc = {lang: {"title": title, "description": desc} for lang, desc in TRAP_LOCALES.items()}
+    return {
+        "title": title, "description": description, "tags": final,
+        "categoryId": "10", "privacyStatus": privacy,
+        "thumbnail_title": preset["title"], "thumbnail_subtitle": f"{primary} • {dur}",
+        "localizations": loc, "playlist": "Trap Mafia",
+    }
+
+
 def build_metadata(preset: dict, date: _dt.date, target_seconds: float,
                    privacy: str = "public") -> dict:
     if preset.get("genre") == "aura_phonk":
         return _aura_metadata(preset, date, target_seconds, privacy)
+    if preset.get("genre") == "trap_mafia":
+        return _trap_metadata(preset, date, target_seconds, privacy)
     words = preset["theme_words"]
     primary = words[date.timetuple().tm_yday % len(words)]
     emoji = preset.get("emoji", "")

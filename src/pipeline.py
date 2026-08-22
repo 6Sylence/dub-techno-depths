@@ -15,7 +15,7 @@ import json
 import os
 from pathlib import Path
 
-from . import ai_music, audio, metadata, video
+from . import ai_music, ai_voice, audio, metadata, video
 from .utils import daily_seed, load_presets, run, select_preset, write_wav
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -175,6 +175,21 @@ def main(argv=None) -> int:
         else:
             print("[1/6] synthesizing DJ-style mix (multiple tracks)…")
         block_seconds = _procedural_mix()
+
+    # TRAP-MAFIA lane: mix the owner's cloned Spanish voice over the beat as a
+    # recurring vocal tag. Best-effort — if the voice is unavailable the
+    # instrumental beat is published unchanged (upload never breaks over it).
+    if not args.vertical and preset.get("genre") == "trap_mafia":
+        try:
+            vhook = ai_voice.generate_hook(out_dir, seed=seed)
+            if vhook:
+                voiced = out_dir / "audio_voiced.m4a"
+                run(video.build_voice_mix_cmd(str(audio_path), str(vhook), str(voiced)))
+                audio_path = voiced
+                block_seconds = _audio_seconds(voiced)
+                print("    [voice] cloned voice mixed over the beat")
+        except Exception as exc:
+            print(f"    [voice] mix skipped ({exc}); using the instrumental beat")
 
     fx_kind = preset["visual"].get("effect", "bubbles")
     print(f"[2/6] rendering animated layers (background + mist + {fx_kind})…")

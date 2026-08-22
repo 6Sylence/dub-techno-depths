@@ -296,8 +296,8 @@ def build_background(preset: dict, path: str | Path,
         lib = _background_library(preset)
         if lib:
             pick = lib[(0 if seed is None else int(seed)) % len(lib)]
-            aura = preset.get("genre") == "aura_phonk"
-            Image.fromarray(_render_library_bg(pick, width, height, aura=aura),
+            dark = preset.get("genre") in ("aura_phonk", "trap_mafia")
+            Image.fromarray(_render_library_bg(pick, width, height, aura=dark),
                             "RGB").save(out, "PNG")
         else:
             Image.fromarray(_render_synthwave(vis, width, height, seed), "RGB").save(out, "PNG")
@@ -666,6 +666,28 @@ def build_audio_concat_cmd(audio_files: list[str], out_file: str,
     return ["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(parts),
             "-map", "[aout]", "-c:a", "aac", "-b:a", "256k",
             "-movflags", "+faststart", out_file]
+
+
+def build_voice_mix_cmd(beat_file: str, voice_file: str, out_file: str,
+                        delay_s: float = 1.5) -> list[str]:
+    """Mix a spoken voice hook over the beat as a recurring vocal tag: the voice
+    comes in after `delay_s`, the beat ducks under it (sidechain compression) so
+    the words cut through, then a limiter tames the peaks. Output length == beat
+    length (the voice plays once near the top of each looped block)."""
+    delay_ms = int(max(0.0, delay_s) * 1000)
+    # apad pads the (short) voice with trailing silence so the sidechain covers
+    # the whole beat — otherwise sidechaincompress would end with the voice and
+    # truncate the track to the hook length.
+    fc = (
+        f"[1:a]adelay={delay_ms}|{delay_ms},volume=2.2,apad[vox];"
+        "[vox]asplit=2[voxA][voxB];"
+        "[0:a][voxA]sidechaincompress=threshold=0.04:ratio=8:attack=5:release=320[duck];"
+        "[duck][voxB]amix=inputs=2:duration=first:normalize=0,"
+        "alimiter=limit=0.97[a]"
+    )
+    return ["ffmpeg", "-y", "-i", beat_file, "-i", voice_file,
+            "-filter_complex", fc, "-map", "[a]",
+            "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", out_file]
 
 
 def build_extend_cmd(loop_mp4: str, target_seconds: float, out_mp4: str) -> list[str]:

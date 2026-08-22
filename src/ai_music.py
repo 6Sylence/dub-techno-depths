@@ -80,6 +80,22 @@ def build_prompt(preset: dict, primary: str, variant: str = "") -> str:
             f"{mood} mood. Around {bpm} BPM.{extra}"
         )
 
+    # TRAP-MAFIA lane: a dark Spanish "mafia trap" / bass-boosted trap beat. Kept
+    # mostly instrumental so the owner's cloned Spanish voice sits on top.
+    if preset.get("genre") == "trap_mafia":
+        return (
+            f"Dark cinematic Spanish mafia trap / bass-boosted trap beat. "
+            f"Heavy distorted 808 bass, hard-hitting trap drums with crisp "
+            f"hi-hat rolls and a booming kick, ominous minor-key piano and dark "
+            f"strings, menacing 'mafia' film-score atmosphere, slow half-time "
+            f"swagger. Mostly instrumental — leave clear space up front for a "
+            f"spoken vocal on top; no lead vocals of its own. Loud, aggressive, "
+            f"bass-boosted master. "
+            f"The music must be 100% original and must NOT imitate, quote or "
+            f"resemble any existing song, artist or track. "
+            f"{mood} mood. Around {bpm} BPM.{extra}"
+        )
+
     # Car / driving is the channel's best-performing theme, so lean hard into it
     # whenever the preset is that lane: an unmistakable night-drive character.
     themes = " ".join(preset.get("theme_words", [])).lower() + " " + title.lower()

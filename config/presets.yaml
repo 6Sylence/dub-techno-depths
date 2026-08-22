@@ -36,6 +36,12 @@ rotation_aura:
   - aura_rage
   - aura_sigma
 
+# Rotation for the TRAP-MAFIA slots (ROTATION=mafia): Spanish bass-boosted trap
+# with the channel owner's cloned voice mixed on top (genre: trap_mafia).
+rotation_mafia:
+  - mafia_trap
+  - trap_boosted
+
 presets:
   # ---------------- BOUNCE ----------------
   - id: bounce_night
@@ -526,3 +532,71 @@ presets:
       vignette: 0.63
       scroll_seconds: 210
       beat_pulse: 0.13
+
+  # -------- TRAP MAFIA (Spanish bass-boosted trap + the owner's cloned voice) --
+  # genre: trap_mafia switches the AI prompt (dark instrumental mafia trap beat)
+  # and metadata to Spanish; the pipeline mixes the cloned voice hook on top.
+  # Dark cinematic car backgrounds with red/gold "mafia" smoke.
+  - id: mafia_trap
+    title: "Mafia Trap"
+    genre: trap_mafia
+    theme_words: ["Trap Mafia", "Bass Boosted", "Trap Latino", "Español"]
+    emoji: "🖤"
+    audio:
+      bpm: 140
+      style: electro
+      progression: [[41, min], [41, min7], [44, min], [39, min]]
+      donk_gain: 1.05
+      donk_drive: 2.3
+      sub_gain: 0.95
+      chord_gain: 0.72
+      lead_gain: 0.6
+      bass_boost: 0.58
+      loudness: 1.3
+      sidechain: 0.8
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16000
+    visual:
+      style: synthwave
+      palette: ["#12060a", "#2a0a12", "#c0202e", "#e0a020"]
+      effect: stars
+      effect_density: 1.0
+      mist_opacity: 24
+      grain: 0.05
+      vignette: 0.66
+      scroll_seconds: 210
+      beat_pulse: 0.12
+      smoke_colors: ["#ff2a2e", "#ff8a1e", "#ffd020", "#a01020"]
+
+  - id: trap_boosted
+    title: "Trap Bass Boosted"
+    genre: trap_mafia
+    theme_words: ["Trap Bass Boosted", "Trap Mafia", "Trap Español", "Trap"]
+    emoji: "🔊"
+    audio:
+      bpm: 138
+      style: electro
+      progression: [[43, min], [43, min7], [46, min], [41, min]]
+      donk_gain: 1.06
+      donk_drive: 2.3
+      sub_gain: 0.95
+      chord_gain: 0.72
+      lead_gain: 0.6
+      bass_boost: 0.58
+      loudness: 1.3
+      sidechain: 0.8
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16000
+    visual:
+      style: synthwave
+      palette: ["#0a0a12", "#1a1226", "#b81030", "#e0b020"]
+      effect: stars
+      effect_density: 1.0
+      mist_opacity: 24
+      grain: 0.05
+      vignette: 0.66
+      scroll_seconds: 205
+      beat_pulse: 0.12
+      smoke_colors: ["#ff2a2e", "#ff8a1e", "#ffd020", "#7a1020"]
