@@ -56,6 +56,10 @@ jobs:
           # old procedural engine. The pipeline aborts (does not upload) if the
           # AI music is unavailable, so a bad mix can never go live.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # Cool AI cover per video (Cloudflare Workers AI, free tier). Falls back
+          # to the procedural thumbnail if these secrets aren't set.
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
           AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS_AURA || '45' }}

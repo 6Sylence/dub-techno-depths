@@ -863,16 +863,74 @@ def _render_city_bokeh(title: str, subtitle: str, tw: int, th: int,
     return im
 
 
+def _render_hero_thumbnail(hero_path: str | Path, title: str, subtitle: str,
+                           tw: int, th: int) -> "Image.Image":
+    """Compose the brand + title over an AI hero image: cover-crop it, darken the
+    lower band for legibility, then draw the bottom-left 'magazine' layout (brand
+    top-left, accent bar + big title, metadata) and a bright corner badge."""
+    im = Image.open(hero_path).convert("RGB")
+    scale = max(tw / im.width, th / im.height)
+    im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))),
+                   Image.LANCZOS)
+    left, top = (im.width - tw) // 2, (im.height - th) // 2
+    im = im.crop((left, top, left + tw, top + th))
+
+    # Legibility scrim: darken the bottom (title) and a touch of the top (brand).
+    grad = np.zeros((th, tw), dtype=np.uint8)
+    ys = np.arange(th)
+    ramp = np.clip((ys - th * 0.42) / (th * 0.58), 0, 1) * 175
+    ramp += np.clip((th * 0.16 - ys) / (th * 0.16), 0, 1) * 90        # slight top scrim
+    grad[:] = np.clip(ramp, 0, 255)[:, None].astype(np.uint8)
+    dark = Image.new("RGBA", (tw, th), (0, 0, 0, 255))
+    dark.putalpha(Image.fromarray(grad, "L"))
+    im = Image.alpha_composite(im.convert("RGBA"), dark).convert("RGB")
+
+    d = ImageDraw.Draw(im)
+    cyan, bright, white = (120, 205, 255), (50, 205, 255), (246, 251, 255)
+    mx = int(tw * 0.055)
+    wf = _load_font(int(th * 0.05))
+    d.text((mx, int(th * 0.075)), "BASS BOOSTED NATION", font=wf, fill=cyan,
+           stroke_width=2, stroke_fill=(0, 0, 0))
+    tf = _load_font(int(th * 0.165))
+    tb = d.textbbox((0, 0), title, font=tf, stroke_width=3)
+    ty = int(th * 0.58)
+    bar_h = tb[3] - tb[1]
+    d.rectangle([mx, ty, mx + 14, ty + bar_h + int(th * 0.02)], fill=bright)
+    tx = mx + 34
+    d.text((tx, ty), title, font=tf, fill=white, stroke_width=3, stroke_fill=(0, 0, 0))
+    mf = _load_font(int(th * 0.052))
+    d.text((tx, ty + bar_h + int(th * 0.03)), subtitle.upper(), font=mf, fill=cyan,
+           stroke_width=2, stroke_fill=(0, 0, 0))
+    badge = f"MIX {subtitle.split('•')[-1].strip()}" if "•" in subtitle else "NEW MIX"
+    bff = _load_font(int(th * 0.044))
+    bb = d.textbbox((0, 0), badge, font=bff)
+    pad = int(th * 0.018)
+    bw, bh = bb[2] - bb[0], bb[3] - bb[1]
+    bx1 = tw - bw - 3 * pad - int(tw * 0.03)
+    by1 = int(th * 0.075)
+    d.rectangle([bx1, by1, bx1 + bw + 2 * pad, by1 + bh + 2 * pad], fill=bright)
+    d.text((bx1 + pad, by1 + pad - bb[1]), badge, font=bff, fill=(4, 12, 26))
+    return im
+
+
 def build_thumbnail(preset: dict, title: str, subtitle: str, path: str | Path,
-                    seed: int | None = None, variant: int = 0) -> Path:
+                    seed: int | None = None, variant: int = 0,
+                    hero_path: str | Path | None = None) -> Path:
     """1280x720 thumbnail.
 
-    Synthwave (bass-boosted) presets get the premium cyan/blue *city-bokeh*
-    treatment. ``variant`` (0 or 1) picks between two layouts so the channel can
-    A/B its click-through rate while keeping one coherent palette. Any other
-    style falls back to compositing the day's scene layers with centred type.
+    If ``hero_path`` is given (an AI-generated hero image) the brand + title are
+    composited over it. Otherwise synthwave (bass-boosted) presets get the
+    premium cyan/blue *city-bokeh* treatment; ``variant`` (0 or 1) picks between
+    two layouts so the channel can A/B its click-through rate. Any other style
+    falls back to compositing the day's scene layers with centred type.
     """
     tw, th = 1280, 720
+
+    if hero_path is not None and Path(hero_path).exists():
+        img = _render_hero_thumbnail(hero_path, title, subtitle, tw, th)
+        out = Path(path)
+        img.save(out, "JPEG", quality=92)
+        return out
 
     if preset["visual"].get("style") == "synthwave":
         img = _render_city_bokeh(title, subtitle, tw, th, seed, variant=variant)

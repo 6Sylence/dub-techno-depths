@@ -52,6 +52,10 @@ jobs:
           # ElevenLabs AI music; pipeline aborts rather than publish the old
           # procedural engine, so a bad mix can never go live.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # Cool AI cover per video (Cloudflare Workers AI, free tier). Falls back
+          # to the procedural thumbnail if these secrets aren't set.
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
           # TRAP-MAFIA lane with the owner's cloned Spanish voice. The pipeline
           # resolves the voice by name and mixes a spoken hook over the beat; if

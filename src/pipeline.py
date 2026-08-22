@@ -15,7 +15,7 @@ import json
 import os
 from pathlib import Path
 
-from . import ai_music, ai_voice, audio, metadata, video
+from . import ai_image, ai_music, ai_voice, audio, metadata, video
 from .utils import daily_seed, load_presets, run, select_preset, write_wav
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -244,11 +244,14 @@ def main(argv=None) -> int:
     else:
         print("[5/6] building metadata + thumbnail…")
         meta = metadata.build_metadata(preset, date, args.target_seconds, privacy=args.privacy)
+        # Cool AI cover per video (Cloudflare Workers AI); falls back to the
+        # procedural thumbnail if the CF secrets are missing or the API errors.
+        hero = ai_image.generate_thumbnail_hero(preset, primary, out_dir, seed=seed)
         # Alternate the two thumbnail layouts across uploads so Studio analytics
         # accumulate click-through data for each style (a rolling A/B test).
         variant = (date.toordinal() + args.slot) % 2
         video.build_thumbnail(preset, meta["thumbnail_title"], meta["thumbnail_subtitle"],
-                              thumb, seed=seed, variant=variant)
+                              thumb, seed=seed, variant=variant, hero_path=hero)
     (out_dir / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
     print(f"    title: {meta['title']}")
 

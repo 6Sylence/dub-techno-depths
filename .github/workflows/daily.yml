@@ -66,6 +66,10 @@ jobs:
           # AI music (ElevenLabs Music). Falls back to the procedural engine if
           # the key is missing or the API errors, so the upload never breaks.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # Cool AI cover per video (Cloudflare Workers AI, free tier). Falls back
+          # to the procedural thumbnail if these secrets aren't set.
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
           # TEMPORARY: both daily slots run the trending AURA-phonk lane (car is
           # paused — remove ROTATION here to bring car music back). Video length is
