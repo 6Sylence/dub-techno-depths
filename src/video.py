@@ -369,35 +369,41 @@ def build_mist(preset: dict, path: str | Path,
         AURA_SMOKE_COLORS if preset.get("genre") == "aura_phonk" else None)
     if smoke_colors:
         cols = [_hex_to_rgb(c) for c in smoke_colors]
-        # Each pixel takes the PURE colour of its strongest plume (no averaging,
-        # which would grey the colours out) so the smoke stays vivid and intense.
+        # Thick "burnout" smoke: billowing turbulent clouds that rise from the
+        # bottom (like tyre/exhaust smoke), tinted in vivid colours. Each pixel
+        # takes the PURE colour of its strongest plume (no averaging, which would
+        # grey the colours out).
+        yn = (y / height)                          # 0 top .. 1 bottom
+        rise = np.clip((yn - 0.10) / 0.90, 0, 1) ** 1.5   # dense low, fades upward
         best = np.zeros((height, width))
         color = np.zeros((height, width, 3))
-        for i in range(14):
-            cx = int(rng.integers(1, 4))          # integer cycles per tile -> periodic
-            fy = rng.uniform(0.5, 1.8)
+        for i in range(9):
+            cx = int(rng.integers(1, 3))           # big low-freq masses -> billows
+            fy = rng.uniform(0.4, 1.1)
             ph_x, ph_y = rng.uniform(0, 2 * math.pi, 2)
             lobe = (np.sin(2 * math.pi * cx * x / width + ph_x)
                     * np.sin(2 * math.pi * fy * y / height + ph_y))
-            lobe = np.clip(lobe, 0, None) ** 1.4   # positive lobes -> plume patches
+            # a finer octave adds turbulent smoke texture
+            lobe += 0.5 * (np.sin(2 * math.pi * (cx + 2) * x / width + ph_y)
+                           * np.sin(2 * math.pi * (fy + 1.3) * y / height + ph_x))
+            lobe = np.clip(lobe, 0, None) * rise   # keep positive + weight to bottom
             col = cols[i % len(cols)]
             win = lobe > best
             best = np.where(win, lobe, best)
             color = np.where(win[..., None], col[None, None, :], color)
-        # Cut everything below a threshold so only the strongest plume cores
-        # survive as distinct smoke clouds with clear gaps (the car still reads),
-        # instead of a full-frame colour veil.
-        thr = float(np.quantile(best, 0.62))
+        thr = float(np.quantile(best, 0.5))        # clear gaps so the car still reads
         best = np.clip(best - thr, 0, None)
-        mist = (best / max(best.max(), 1e-9)) ** 1.25
+        mist = (best / max(best.max(), 1e-9)) ** 1.0
         mist = np.tile(mist, (1, 2))
         color = np.tile(color, (1, 2, 1))
-        max_alpha = int(vis.get("smoke_opacity", 165))
+        max_alpha = int(vis.get("smoke_opacity", 185))
         rgba = np.zeros((height, width * 2, 4), dtype=np.uint8)
         rgba[..., :3] = np.clip(color, 0, 255).astype(np.uint8)
         rgba[..., 3] = (mist * max_alpha).astype(np.uint8)
+        img = Image.fromarray(rgba, "RGBA").filter(
+            ImageFilter.GaussianBlur(max(2, width // 140)))   # soften into smoke
         out = Path(path)
-        Image.fromarray(rgba, "RGBA").save(out, "PNG")
+        img.save(out, "PNG")
         return out
 
     field = np.zeros((height, width))
