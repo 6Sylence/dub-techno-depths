@@ -23,11 +23,18 @@ rotation:
   - electro_house
   - night_highway
 
-# Rotation for the AURA-phonk daily slot (ROTATION=aura). Only aura presets.
+# Rotation for the AURA-phonk daily slots (ROTATION=aura). Only aura presets.
+# 8 distinct sub-styles so the many daily uploads never look/sound alike — key
+# to staying clear of YouTube's "repetitious content" filter at high volume.
 rotation_aura:
   - aura_midnight
+  - aura_brazilian
   - aura_dream
+  - aura_gym
   - aura_ethereal
+  - aura_night
+  - aura_rage
+  - aura_sigma
 
 presets:
   # ---------------- BOUNCE ----------------
@@ -362,5 +369,160 @@ presets:
       mist_opacity: 26
       grain: 0.05
       vignette: 0.62
+      scroll_seconds: 210
+      beat_pulse: 0.13
+
+  - id: aura_brazilian
+    title: "Brazilian Phonk"
+    genre: aura_phonk
+    theme_words: ["Aura Farming", "Brazilian Phonk", "Funk", "Baile"]
+    emoji: "🟢"
+    audio:
+      bpm: 130
+      style: electro
+      progression: [[45, min], [45, min7], [48, min], [43, min]]
+      donk_gain: 1.12
+      donk_drive: 2.5
+      sub_gain: 0.9
+      chord_gain: 0.78
+      lead_gain: 0.7
+      bass_boost: 0.56
+      loudness: 1.31
+      sidechain: 0.82
+      vocal_gain: 0.28
+      vowel: "oh"
+      master_cut: 16500
+    visual:
+      style: synthwave
+      palette: ["#03140a", "#0a2a1e", "#12b45a", "#a020ff"]
+      effect: stars
+      effect_density: 1.15
+      mist_opacity: 24
+      grain: 0.05
+      vignette: 0.62
+      scroll_seconds: 205
+      beat_pulse: 0.13
+
+  - id: aura_gym
+    title: "Gym Phonk"
+    genre: aura_phonk
+    theme_words: ["Gym Phonk", "Workout", "Sigma", "Motivation"]
+    emoji: "🔴"
+    audio:
+      bpm: 150
+      style: electro
+      progression: [[45, min], [48, min7], [45, min], [50, sus4]]
+      donk_gain: 1.12
+      donk_drive: 2.5
+      sub_gain: 0.9
+      chord_gain: 0.78
+      lead_gain: 0.76
+      bass_boost: 0.56
+      loudness: 1.32
+      sidechain: 0.82
+      vocal_gain: 0.28
+      vowel: "oh"
+      master_cut: 16800
+    visual:
+      style: synthwave
+      palette: ["#1a0406", "#3a0a12", "#ff2d3a", "#ff6a3a"]
+      effect: stars
+      effect_density: 1.05
+      mist_opacity: 22
+      grain: 0.05
+      vignette: 0.62
+      scroll_seconds: 200
+      beat_pulse: 0.14
+
+  - id: aura_night
+    title: "Night Drift"
+    genre: aura_phonk
+    theme_words: ["Night Drive", "Drift Phonk", "Aura", "Tokyo"]
+    emoji: "🌃"
+    audio:
+      bpm: 145
+      style: electro
+      progression: [[43, min], [50, maj], [46, min7], [45, min]]
+      donk_gain: 1.05
+      donk_drive: 2.2
+      sub_gain: 0.9
+      chord_gain: 0.82
+      lead_gain: 0.7
+      bass_boost: 0.55
+      loudness: 1.3
+      sidechain: 0.8
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16500
+    visual:
+      style: synthwave
+      palette: ["#050a24", "#101a52", "#2f6bff", "#8a4cff"]
+      effect: stars
+      effect_density: 1.1
+      mist_opacity: 28
+      grain: 0.05
+      vignette: 0.63
+      scroll_seconds: 210
+      beat_pulse: 0.13
+
+  - id: aura_rage
+    title: "Rage Phonk"
+    genre: aura_phonk
+    theme_words: ["Rage Phonk", "Aura Farming", "Gaming", "Hype"]
+    emoji: "🟠"
+    audio:
+      bpm: 160
+      style: electro
+      progression: [[45, min], [45, min7], [43, min], [46, min]]
+      donk_gain: 1.14
+      donk_drive: 2.6
+      sub_gain: 0.88
+      chord_gain: 0.76
+      lead_gain: 0.78
+      bass_boost: 0.56
+      loudness: 1.32
+      sidechain: 0.83
+      vocal_gain: 0.26
+      vowel: "oh"
+      master_cut: 17000
+    visual:
+      style: synthwave
+      palette: ["#180410", "#3a0a1a", "#ff2a6a", "#ff8a2a"]
+      effect: stars
+      effect_density: 1.2
+      mist_opacity: 22
+      grain: 0.05
+      vignette: 0.6
+      scroll_seconds: 195
+      beat_pulse: 0.15
+
+  - id: aura_sigma
+    title: "Sigma Grind"
+    genre: aura_phonk
+    theme_words: ["Sigma", "Aura Farming", "Grind", "Motivation"]
+    emoji: "🟣"
+    audio:
+      bpm: 148
+      style: electro
+      progression: [[41, min], [48, maj], [43, min], [46, min7]]
+      donk_gain: 1.1
+      donk_drive: 2.4
+      sub_gain: 0.9
+      chord_gain: 0.8
+      lead_gain: 0.72
+      bass_boost: 0.55
+      loudness: 1.31
+      sidechain: 0.81
+      vocal_gain: 0.3
+      vowel: "oh"
+      master_cut: 16500
+    visual:
+      style: synthwave
+      palette: ["#0a0518", "#241338", "#8a5cff", "#d0a020"]
+      effect: stars
+      effect_density: 1.1
+      mist_opacity: 26
+      grain: 0.05
+      vignette: 0.63
       scroll_seconds: 210
       beat_pulse: 0.13

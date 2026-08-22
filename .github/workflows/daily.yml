@@ -73,7 +73,10 @@ jobs:
           # credit guard in ai_music.py keeps AI-music spend inside the plan.
           ROTATION: aura
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
-          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '150' }}
+          # Sized so 4 daily longs + 2 shorts of fresh AI music fit the ElevenLabs
+          # Creator plan (~159 min/mo). Raise the AI_TRACK_SECONDS_AURA repo variable
+          # if you upgrade the plan (Pro = ~555 min/mo) for longer unique sections.
+          AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS_AURA || '45' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '3600' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}

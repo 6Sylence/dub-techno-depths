@@ -1,0 +1,74 @@
+name: Daily Short 2
+
+# Second daily vertical Short (SLOT=4 so it differs from the first Short). Uses
+# the best AI drop of a peak-energy aura-phonk track (highest-energy 60 s window).
+# 05:07 UTC seeds the EU morning / late-US-night scroll. Shorts are the discovery
+# engine for a young channel — two a day widen the top of the funnel.
+#
+# API budget: 6 uploads/day x 1600 units = 9600 of the 10,000/day quota. If a run
+# ever fails with "quotaExceeded", give this channel its own Google Cloud project
+# (README "Puesta en marcha") to restore a full 10k quota.
+on:
+  schedule:
+    - cron: "7 5 * * *"
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "Force a preset id (blank = slot rotation)"
+        required: false
+        default: ""
+      no_upload:
+        description: "Render only, do not upload (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: daily-short-2
+  cancel-in-progress: false
+
+jobs:
+  render-and-upload-short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Render and upload Short
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          ROTATION: aura
+          VERTICAL: "1"
+          LOOP_SECONDS: "60"
+          TARGET_SECONDS: "60"
+          SLOT: "4"
+          DEFAULT_PRIVACY: ${{ vars.DEFAULT_PRIVACY || 'public' }}
+          PRESET: ${{ github.event.inputs.preset }}
+          NO_UPLOAD: ${{ github.event.inputs.no_upload }}
+        run: python -m src.pipeline
+
+      - name: Upload render artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: short2-${{ github.run_id }}
+          path: |
+            out/metadata.json
+            out/result.json
+          if-no-files-found: ignore
+          retention-days: 2

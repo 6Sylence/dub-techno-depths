@@ -1,19 +1,16 @@
-name: Daily Aura Phonk upload
+name: Daily Aura Phonk upload 4
 
-# The SECOND daily upload: an AURA-PHONK mix (ROTATION=aura), a different lane
-# from the car-music morning slot, both rendered with ElevenLabs Music. SLOT=1
-# shifts the rotation and salts the seed so it never clones the morning video.
-#
-# 01:07 UTC targets the US night window (21:07 EDT / 18:07 PDT) — prime time for
-# dreamy night-drive/aura content — while the car-music upload lands the US+EU
-# daytime peak at 17:07 UTC. Minute :07 avoids GitHub's congested top-of-hour.
+# Fourth daily long: an AURA-PHONK mix (ROTATION=aura), SLOT=3 so the preset
+# rotation and seed differ from the other slots (never a clone). 13:07 UTC hits
+# the US morning / EU afternoon window. Part of the high-volume aura schedule
+# (4 longs + 2 shorts/day); AI-music seconds are sized to the ElevenLabs plan.
 on:
   schedule:
-    - cron: "7 1 * * *"
+    - cron: "7 13 * * *"
   workflow_dispatch:
     inputs:
       preset:
-        description: "Force a preset id (blank = rotate by date, slot 1)"
+        description: "Force a preset id (blank = rotate by date, slot 3)"
         required: false
         default: ""
       no_upload:
@@ -26,7 +23,7 @@ on:
         default: ""
 
 concurrency:
-  group: daily-upload-extra
+  group: daily-upload-4
   cancel-in-progress: false
 
 jobs:
@@ -52,20 +49,17 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          # Use ElevenLabs like the morning slot so published mixes are never the
-          # old procedural engine. The pipeline aborts (does not upload) if the
-          # AI music is unavailable, so a bad mix can never go live.
+          # ElevenLabs AI music; pipeline aborts rather than publish the old
+          # procedural engine, so a bad mix can never go live.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          ROTATION: aura
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
           AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS_AURA || '45' }}
-          # This slot is the AURA-phonk video (trending): a different category
-          # from the car-music morning slot, so the channel runs two lanes.
-          ROTATION: aura
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
           TARGET_SECONDS: ${{ vars.TARGET_SECONDS_AURA || '3600' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
-          SLOT: "1"
+          SLOT: "3"
           AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
           PRESET: ${{ github.event.inputs.preset }}
           NO_UPLOAD: ${{ github.event.inputs.no_upload }}
@@ -76,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: render-extra-${{ github.run_id }}
+          name: render-4-${{ github.run_id }}
           path: |
             out/metadata.json
             out/result.json
