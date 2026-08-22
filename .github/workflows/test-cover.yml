@@ -1,0 +1,53 @@
+name: Test AI cover
+
+# TEMPORARY: generates one real Cloudflare AI cover (no music, no upload, no
+# quota) and uploads it as an artifact so we can eyeball it. Safe to delete.
+on:
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: "preset id (e.g. mafia_trap, aura_midnight, car_bounce)"
+        required: false
+        default: "mafia_trap"
+
+jobs:
+  cover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Generate AI cover
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, yaml
+          from src import ai_image, video
+          os.makedirs('out', exist_ok=True)
+          pid = os.environ.get('PRESET_ID') or "${{ github.event.inputs.preset }}" or "mafia_trap"
+          presets = yaml.safe_load(open('config/presets.yaml'))['presets']
+          p = next(x for x in presets if x['id']==pid)
+          print('preset:', pid, '| CF available:', ai_image.available())
+          hero = ai_image.generate_thumbnail_hero(p, p['theme_words'][0], 'out', seed=7)
+          print('hero path:', hero)
+          if hero:
+              video.build_thumbnail(p, p['title'].upper(), f"{p['theme_words'][0]} • Mix",
+                                    'out/cover.jpg', seed=7, hero_path=hero)
+              print('cover built -> out/cover.jpg')
+          PY
+      - name: Upload cover
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-cover
+          path: |
+            out/hero.jpg
+            out/cover.jpg
+          if-no-files-found: warn
+          retention-days: 2
