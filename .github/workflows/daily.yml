@@ -67,14 +67,15 @@ jobs:
           # the key is missing or the API errors, so the upload never breaks.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
-          # Sized to the ElevenLabs Creator plan (~824 credits/min): morning 2.5
-          # min + afternoon 1.5 min (daily-extra) + Short 1 min drop = ~5 min/day,
-          # ~123k credits/month, inside the 131k allowance. A credit guard in
-          # ai_music.py auto-shrinks this if the balance runs low.
+          # TEMPORARY: both daily slots run the trending AURA-phonk lane (car is
+          # paused — remove ROTATION here to bring car music back). Video length is
+          # free (it just loops), so this is a full 1-hour mix for watch-time. The
+          # credit guard in ai_music.py keeps AI-music spend inside the plan.
+          ROTATION: aura
           AI_TRACKS: ${{ github.event.inputs.ai_tracks || vars.AI_TRACKS || '1' }}
           AI_TRACK_SECONDS: ${{ github.event.inputs.ai_track_seconds || vars.AI_TRACK_SECONDS || '150' }}
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
-          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '1200' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS || '3600' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
           SLOT: "0"
           AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}

@@ -56,6 +56,8 @@ jobs:
           # track), falling back to the procedural engine only if credits run low.
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           MUSIC_ENGINE: ${{ vars.MUSIC_ENGINE || 'ai' }}
+          # TEMPORARY: Short also rides the AURA-phonk trend (remove to revert to car).
+          ROTATION: aura
           VERTICAL: "1"
           LOOP_SECONDS: "60"
           TARGET_SECONDS: "60"

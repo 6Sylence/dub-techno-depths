@@ -63,7 +63,7 @@ jobs:
           # from the car-music morning slot, so the channel runs two lanes.
           ROTATION: aura
           LOOP_SECONDS: ${{ vars.LOOP_SECONDS || '300' }}
-          TARGET_SECONDS: ${{ vars.TARGET_SECONDS_AURA || '1200' }}
+          TARGET_SECONDS: ${{ vars.TARGET_SECONDS_AURA || '3600' }}
           DEFAULT_PRIVACY: ${{ github.event.inputs.privacy || vars.DEFAULT_PRIVACY || 'public' }}
           SLOT: "1"
           AFFILIATE_BLOCK: ${{ vars.AFFILIATE_BLOCK || '' }}
