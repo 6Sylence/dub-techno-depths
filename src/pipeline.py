@@ -77,6 +77,9 @@ def main(argv=None) -> int:
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Run-status flags surfaced in a final [status] line (visible in the log tail).
+    hero = None
+    used_voice = False
     wav = out_dir / "audio.wav"
     bg = out_dir / "background.png"
     loop_mp4 = out_dir / "loop.mp4"
@@ -193,6 +196,7 @@ def main(argv=None) -> int:
                 run(video.build_voice_mix_cmd(str(audio_path), specs, str(voiced)))
                 audio_path = voiced
                 block_seconds = _audio_seconds(voiced)
+                used_voice = True
                 print(f"    [voice] cloned voice arranged over the beat "
                       f"({len(clips)} line(s))")
         except Exception as exc:
@@ -247,6 +251,11 @@ def main(argv=None) -> int:
         # Cool AI cover per video (Cloudflare Workers AI); falls back to the
         # procedural thumbnail if the CF secrets are missing or the API errors.
         hero = ai_image.generate_thumbnail_hero(preset, primary, out_dir, seed=seed)
+        if hero is None and ai_image.available():
+            print("    [thumb] CF secrets present but no hero produced")
+        elif hero is None:
+            print("    [thumb] no CF secrets (CF_ACCOUNT_ID/CF_API_TOKEN) — "
+                  "using the procedural thumbnail")
         # Alternate the two thumbnail layouts across uploads so Studio analytics
         # accumulate click-through data for each style (a rolling A/B test).
         variant = (date.toordinal() + args.slot) % 2
@@ -272,6 +281,9 @@ def main(argv=None) -> int:
         {"date": date.isoformat(), "preset": preset["id"], "video_id": video_id,
          "url": f"https://youtu.be/{video_id}"}, indent=2))
     print(f"Done → https://youtu.be/{video_id}")
+    cover = "ai" if hero else "procedural"
+    voice = "yes" if used_voice else ("n/a" if preset.get("genre") != "trap_mafia" else "no")
+    print(f"[status] cover={cover} | voice={voice} | genre={preset.get('genre', '-')}")
     return 0
 
 
