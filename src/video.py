@@ -80,15 +80,21 @@ def _text_img(txt, font, fill, stroke_fill=None, sw=0) -> "Image.Image":
 
 
 def _emblem(d: "ImageDraw.ImageDraw", cx: int, cy: int, R: int, color) -> None:
-    """A clean subwoofer emblem: neon ring, white cone, coloured dust cap, and
-    two faint bass-wave arcs — far less busy than the old full-white disc."""
-    for k in (2, 1):                                          # faint bass waves
-        rr, w = int(R * (1.28 + 0.42 * k)), max(2, R // 8)
-        d.arc([cx - rr, cy - rr, cx + rr, cy + rr], -36, 36, fill=color + (150 - 45 * k,), width=w)
-        d.arc([cx - rr, cy - rr, cx + rr, cy + rr], 144, 216, fill=color + (150 - 45 * k,), width=w)
-    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=color + (255,), width=max(3, R // 6))
-    ic = int(R * 0.46); d.ellipse([cx - ic, cy - ic, cx + ic, cy + ic], fill=(255, 255, 255, 255))
-    dc = int(R * 0.15); d.ellipse([cx - dc, cy - dc, cx + dc, cy + dc], fill=color + (255,))
+    """A clean, modern music emblem: a bold neon ring with three rounded
+    equalizer bars inside — reads clearly even at small corner sizes."""
+    ring_w = max(3, int(R * 0.22))
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=color + (255,), width=ring_w)
+    bar_w = max(2, int(R * 0.26))
+    gap = max(2, int(R * 0.20))
+    heights = (0.52, 1.0, 0.72)                               # EQ bars, middle tallest
+    total_w = len(heights) * bar_w + (len(heights) - 1) * gap
+    x0 = cx - total_w // 2
+    base_y = cy + int(R * 0.5)
+    for i, hf in enumerate(heights):
+        bx = x0 + i * (bar_w + gap)
+        top = base_y - int(R * 0.98 * hf)
+        d.rounded_rectangle([bx, top, bx + bar_w, base_y],
+                            radius=bar_w // 2, fill=(255, 255, 255, 255))
 
 
 def _brand_lockup(color=BRAND_COLOR) -> "Image.Image":
@@ -102,23 +108,22 @@ def _brand_lockup(color=BRAND_COLOR) -> "Image.Image":
     ey = int(H0 * 0.03) + R
     _emblem(d, cx, ey, R, color)
 
-    f1 = _load_font(int(H0 * 0.082))                          # BASS BOOSTED
-    wm = _slant(_text_img(BRAND_LINE1, f1, (255, 255, 255, 255), color + (255,),
-                          max(2, int(H0 * 0.006))))
-    wy = ey + R + int(H0 * 0.022)
+    f1 = _load_font(int(H0 * 0.088))                          # BASS BOOSTED (upright,
+    wm = _text_img(BRAND_LINE1, f1, (255, 255, 255, 255), color + (255,),  # crisp thin
+                   max(1, int(H0 * 0.0035)))                  # cyan keyline, no slant)
+    wy = ey + R + int(H0 * 0.024)
     canvas.alpha_composite(wm, (cx - wm.width // 2, wy))
 
-    f2 = _load_font(int(H0 * 0.050))                          # N A T I O N (bigger)
-    tag = _text_img(" ".join(BRAND_LINE2), f2, color + (255,), (255, 255, 255, 90),
-                    max(1, int(H0 * 0.002)))
-    ty = wy + wm.height + int(H0 * 0.010)
+    f2 = _load_font(int(H0 * 0.052))                          # N A T I O N (spaced)
+    tag = _text_img(" ".join(BRAND_LINE2), f2, color + (255,))
+    ty = wy + wm.height + int(H0 * 0.008)
     canvas.alpha_composite(tag, (cx - tag.width // 2, ty))
-    ry = ty + tag.height // 2                                 # flanking rules
-    gap, rule = int(H0 * 0.020), int(H0 * 0.050)
+    ry = ty + tag.height // 2                                 # thin flanking rules
+    gap, rule = int(H0 * 0.024), int(H0 * 0.055)
     for sgn in (-1, 1):
         x0 = cx + sgn * (tag.width // 2 + gap)
-        d.line([(x0, ry), (x0 + sgn * rule, ry)], fill=color + (255,),
-               width=max(2, int(H0 * 0.005)))
+        d.line([(x0, ry), (x0 + sgn * rule, ry)], fill=color + (230,),
+               width=max(2, int(H0 * 0.004)))
     return canvas.crop(canvas.getbbox())
 
 
@@ -128,20 +133,27 @@ def _brand_overlay(img: "Image.Image", variant: str | None = None,
     neon) and a single neon glow — crisp, not the old muddy double blur."""
     W, H = img.size
     variant = variant or BRAND_VARIANT
-    lock = _brand_lockup(color or BRAND_COLOR)
-    tw = int(W * (0.23 if variant == "corner" else 0.34))
+    bc = color or BRAND_COLOR
+    lock = _brand_lockup(bc)
+    tw = int(W * (0.22 if variant == "corner" else 0.33))
     th = max(1, int(lock.height * tw / lock.width))
     lock = lock.resize((tw, th), Image.LANCZOS)
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     pos = ((int(W * 0.035), H - th - int(H * 0.055)) if variant == "corner"
            else (W // 2 - tw // 2, int(H * 0.035)))
     layer.alpha_composite(lock, pos)
+    mask = layer.split()[3]
 
-    halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))            # dark halo behind
-    halo.paste((0, 0, 0, 255), (0, 0), layer.split()[3])
-    halo.putalpha(halo.split()[3].point(lambda a: int(a * 0.55)))
-    halo = halo.filter(ImageFilter.GaussianBlur(max(4, W // 300)))
-    glow = layer.filter(ImageFilter.GaussianBlur(max(3, W // 380)))
+    halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))            # soft dark plate for legibility
+    halo.paste((0, 0, 0, 255), (0, 0), mask)
+    halo.putalpha(halo.split()[3].point(lambda a: int(a * 0.5)))
+    halo = halo.filter(ImageFilter.GaussianBlur(max(6, W // 240)))
+
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))            # symmetric neon glow (brand colour)
+    glow.paste(bc + (255,), (0, 0), mask)
+    glow = glow.filter(ImageFilter.GaussianBlur(max(4, W // 300)))
+    glow.putalpha(glow.split()[3].point(lambda a: int(a * 0.6)))
+
     out = img.convert("RGBA")
     out = Image.alpha_composite(out, halo)
     out = Image.alpha_composite(out, glow)
@@ -329,6 +341,11 @@ def build_background(preset: dict, path: str | Path,
     return out
 
 
+# Vivid smoke palette for the aura-farming lane (purple / yellow / green /
+# magenta / cyan). Any aura preset can override it with a `smoke_colors` list.
+AURA_SMOKE_COLORS = ["#b026ff", "#ffe020", "#22ff66", "#ff2ea6", "#20e0ff"]
+
+
 def build_mist(preset: dict, path: str | Path,
                width: int = WIDTH, height: int = HEIGHT,
                seed: int | None = None) -> Path:
@@ -343,6 +360,45 @@ def build_mist(preset: dict, path: str | Path,
     vis = preset["visual"]
     x = np.arange(width)[None, :]
     y = np.arange(height)[:, None]
+
+    # Vivid multicolour smoke: presets can list `smoke_colors` (e.g. purple,
+    # yellow, green). Each colour rides its own set of periodic plume lobes, so
+    # the layer stays x-tileable but shows distinct coloured smoke instead of a
+    # single flat tint.
+    smoke_colors = vis.get("smoke_colors") or (
+        AURA_SMOKE_COLORS if preset.get("genre") == "aura_phonk" else None)
+    if smoke_colors:
+        cols = [_hex_to_rgb(c) for c in smoke_colors]
+        # Each pixel takes the PURE colour of its strongest plume (no averaging,
+        # which would grey the colours out) so the smoke stays vivid and intense.
+        best = np.zeros((height, width))
+        color = np.zeros((height, width, 3))
+        for i in range(14):
+            cx = int(rng.integers(1, 4))          # integer cycles per tile -> periodic
+            fy = rng.uniform(0.5, 1.8)
+            ph_x, ph_y = rng.uniform(0, 2 * math.pi, 2)
+            lobe = (np.sin(2 * math.pi * cx * x / width + ph_x)
+                    * np.sin(2 * math.pi * fy * y / height + ph_y))
+            lobe = np.clip(lobe, 0, None) ** 1.4   # positive lobes -> plume patches
+            col = cols[i % len(cols)]
+            win = lobe > best
+            best = np.where(win, lobe, best)
+            color = np.where(win[..., None], col[None, None, :], color)
+        # Cut everything below a threshold so only the strongest plume cores
+        # survive as distinct smoke clouds with clear gaps (the car still reads),
+        # instead of a full-frame colour veil.
+        thr = float(np.quantile(best, 0.62))
+        best = np.clip(best - thr, 0, None)
+        mist = (best / max(best.max(), 1e-9)) ** 1.25
+        mist = np.tile(mist, (1, 2))
+        color = np.tile(color, (1, 2, 1))
+        max_alpha = int(vis.get("smoke_opacity", 165))
+        rgba = np.zeros((height, width * 2, 4), dtype=np.uint8)
+        rgba[..., :3] = np.clip(color, 0, 255).astype(np.uint8)
+        rgba[..., 3] = (mist * max_alpha).astype(np.uint8)
+        out = Path(path)
+        Image.fromarray(rgba, "RGBA").save(out, "PNG")
+        return out
 
     field = np.zeros((height, width))
     for _ in range(7):
