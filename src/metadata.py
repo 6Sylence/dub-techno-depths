@@ -100,7 +100,7 @@ Every aura farming mix on {CHANNEL_NAME} is generated from scratch — 100% orig
         if t in seen:
             continue
         seen.add(t)
-        if budget + len(t) + 1 > 480:
+        if budget + len(t) + 1 > 440:
             break
         final.append(t)
         budget += len(t) + 1
@@ -158,7 +158,7 @@ Cada mix de {CHANNEL_NAME} está creado desde cero — música y voz 100% origin
         if t in seen:
             continue
         seen.add(t)
-        if budget + len(t) + 1 > 480:
+        if budget + len(t) + 1 > 440:
             break
         final.append(t)
         budget += len(t) + 1
@@ -219,7 +219,7 @@ Every mix on {CHANNEL_NAME} is generated from scratch — 100% original, procedu
         if t in seen:
             continue
         seen.add(t)
-        if budget + len(t) + 1 > 480:
+        if budget + len(t) + 1 > 440:
             break
         final.append(t)
         budget += len(t) + 1

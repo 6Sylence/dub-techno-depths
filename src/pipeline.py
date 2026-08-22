@@ -15,7 +15,7 @@ import json
 import os
 from pathlib import Path
 
-from . import ai_image, ai_music, ai_voice, audio, metadata, video
+from . import ai_image, ai_music, ai_voice, audio, insights, metadata, video
 from .utils import daily_seed, load_presets, run, select_preset, write_wav
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -68,6 +68,19 @@ def main(argv=None) -> int:
     # each daily slot can stick to its own category; falls back to the general one.
     _rot_key = os.environ.get("ROTATION", "").strip()
     rotation = (_cfg.get(f"rotation_{_rot_key}") if _rot_key else None) or _cfg.get("rotation")
+    # Learn from the channel's own views: bias the rotation toward the presets
+    # that get the most views, and remember the winning cover styles. Best-effort
+    # (any failure -> normal rotation). Long uploads only.
+    perf_styles: dict = {}
+    if not args.vertical and insights.enabled():
+        try:
+            perf_presets, perf_styles = insights.learn(presets)
+            rotation = insights.weighted_rotation(rotation, perf_presets)
+            if perf_presets:
+                print(f"    [learn] weighting rotation by views "
+                      f"({len(perf_presets)} presets scored)")
+        except Exception as exc:
+            print(f"    [learn] skipped ({exc})")
     preset = select_preset(presets, date, args.preset, offset=args.slot, rotation=rotation)
     seed = daily_seed(date, f"{preset['id']}#s{args.slot}")
     # Manual dispatches must never clone that day's scheduled upload: salt the
@@ -80,6 +93,7 @@ def main(argv=None) -> int:
     # Run-status flags surfaced in a final [status] line (visible in the log tail).
     hero = None
     used_voice = False
+    style_idx = None
     wav = out_dir / "audio.wav"
     bg = out_dir / "background.png"
     loop_mp4 = out_dir / "loop.mp4"
@@ -248,9 +262,18 @@ def main(argv=None) -> int:
     else:
         print("[5/6] building metadata + thumbnail…")
         meta = metadata.build_metadata(preset, date, args.target_seconds, privacy=args.privacy)
+        # Pick the cover style the learner says wins for this genre (with an
+        # exploration share for fresh looks), and stamp hidden markers so this
+        # upload's future views feed back into the learning.
+        style_idx = insights.best_style(preset.get("genre", "-"), perf_styles,
+                                        ai_image.n_styles(preset), seed)
+        meta.setdefault("tags", []).append(f"{insights.PRESET_TAG}{preset['id']}")
+        meta["tags"].append(f"{insights.STYLE_TAG}{style_idx}")
         # Cool AI cover per video (Cloudflare Workers AI); falls back to the
         # procedural thumbnail if the CF secrets are missing or the API errors.
-        hero = ai_image.generate_thumbnail_hero(preset, primary, out_dir, seed=seed)
+        hero = ai_image.generate_thumbnail_hero(
+            preset, primary, out_dir, seed=seed, style_idx=style_idx,
+            trend_idx=date.toordinal() + args.slot)
         if hero is None and ai_image.available():
             print("    [thumb] CF secrets present but no hero produced")
         elif hero is None:
@@ -283,7 +306,8 @@ def main(argv=None) -> int:
     print(f"Done → https://youtu.be/{video_id}")
     cover = "ai" if hero else "procedural"
     voice = "yes" if used_voice else ("n/a" if preset.get("genre") != "trap_mafia" else "no")
-    print(f"[status] cover={cover} | voice={voice} | genre={preset.get('genre', '-')}")
+    print(f"[status] cover={cover} style={style_idx} | voice={voice} "
+          f"| genre={preset.get('genre', '-')}")
     return 0
 
 

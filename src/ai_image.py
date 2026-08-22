@@ -36,26 +36,65 @@ def available() -> bool:
                 and os.environ.get("CF_API_TOKEN", "").strip())
 
 
-def thumbnail_prompt(preset: dict, primary: str) -> str:
-    """A genre-aware text-to-image prompt for the thumbnail hero. No text/letters
-    (the title is drawn on top), unbranded (copyright-safe), 16:9 friendly."""
+# Base subject per genre, then several interchangeable STYLE variants. The
+# learner (src/insights.py) tracks which style index earns the most views and
+# biases new uploads toward it, so covers improve over time; an exploration
+# share keeps trying fresh looks. TREND_TERMS rotate a current-aesthetic phrase.
+_SUBJECT = {
+    "aura_phonk": ("A blacked-out generic sports car on a wet neon street at night, "
+                   "glowing headlight rings, vivid purple green and yellow aura smoke "
+                   "swirling around it, dreamy phonk 'aura farming' aesthetic"),
+    "trap_mafia": ("An aggressive matte black muscle car, dark cinematic mafia "
+                   "atmosphere, wet asphalt at night, moody and menacing"),
+    "_default":   ("A sleek generic supercar on a neon-lit city highway at night, "
+                   "glossy reflections on wet asphalt, high-energy car-music vibe"),
+}
+_STYLES = {
+    "aura_phonk": [
+        "low wide angle, deep neon reflections, heavy colored smoke, rim light",
+        "front three-quarter hero shot, glowing rings, rain and drifting mist",
+        "rear view with long-exposure light trails and cyberpunk city bokeh",
+    ],
+    "trap_mafia": [
+        "doing a burnout, thick red and gold tyre smoke, sparks and embers, low angle",
+        "front three-quarter, dramatic rim light, fog, glowing wheels, menacing pose",
+        "sideways drift, tyre smoke, neon reflections on wet asphalt, motion energy",
+    ],
+    "_default": [
+        "rear view, long-exposure light trails, electric blue and cyan glow",
+        "front three-quarter, wet city street, vivid cyan neon reflections",
+        "low dramatic angle, sunset-to-night gradient sky, lens flare",
+    ],
+}
+TREND_TERMS = [
+    "trending cinematic look", "hyper-detailed 8k", "moody teal-and-orange grade",
+    "dramatic volumetric lighting", "bold high-contrast poster composition",
+    "aesthetic neon color pop",
+]
+_COMMON = ("Ultra high detail, cinematic dramatic lighting, bold high contrast, "
+           "vibrant, professional YouTube music thumbnail, no text, no watermark, "
+           "no logos, unbranded, 16:9 wide composition.")
+
+
+def _styles_for(preset: dict) -> list[str]:
+    return _STYLES.get(preset.get("genre"), _STYLES["_default"])
+
+
+def n_styles(preset: dict) -> int:
+    return len(_styles_for(preset))
+
+
+def thumbnail_prompt(preset: dict, primary: str, style_idx: int = 0,
+                     trend_idx: int | None = None) -> str:
+    """Genre-aware text-to-image prompt for the thumbnail hero. ``style_idx``
+    selects one of the genre's style variants; a rotating trend term is appended.
+    No text (the title is drawn on top), unbranded (copyright-safe), 16:9."""
     genre = preset.get("genre")
-    common = ("Ultra high detail, cinematic dramatic lighting, bold high contrast, "
-              "vibrant, professional YouTube music thumbnail, no text, no watermark, "
-              "no logos, unbranded, 16:9 wide composition.")
-    if genre == "aura_phonk":
-        return ("A blacked-out generic sports car on a wet neon street at night, "
-                "glowing headlight rings, vivid purple green and yellow aura smoke "
-                "swirling around it, dreamy phonk 'aura farming' aesthetic, deep "
-                "shadows and neon rim light. " + common)
-    if genre == "trap_mafia":
-        return ("An aggressive matte black muscle car doing a burnout, thick red and "
-                "gold tyre smoke and sparks, glowing wheels, dark cinematic mafia "
-                "atmosphere, wet asphalt at night, moody and menacing. " + common)
-    # default: bass-boosted / car-music EDM
-    return ("A sleek generic supercar seen from behind on a neon-lit city highway at "
-            "night, glossy reflections on wet asphalt, streaking light trails, "
-            "electric blue and cyan glow, high-energy car-music vibe. " + common)
+    subject = _SUBJECT.get(genre, _SUBJECT["_default"])
+    styles = _styles_for(preset)
+    style = styles[style_idx % len(styles)]
+    trend = TREND_TERMS[(trend_idx if trend_idx is not None else 0) % len(TREND_TERMS)]
+    return f"{subject}, {style}. {trend}. {_COMMON}"
 
 
 def generate(prompt: str, out_path: str | Path, steps: int = 6,
@@ -98,15 +137,17 @@ def generate(prompt: str, out_path: str | Path, steps: int = 6,
 
 
 def generate_thumbnail_hero(preset: dict, primary: str, out_dir: str | Path,
-                            seed: int = 0) -> Path | None:
+                            seed: int = 0, style_idx: int = 0,
+                            trend_idx: int | None = None) -> Path | None:
     """Generate the thumbnail hero image, or None if AI images are unavailable /
     the request fails (caller falls back to the procedural thumbnail)."""
     if not available():
         return None
     dest = Path(out_dir) / "hero.jpg"
     try:
-        generate(thumbnail_prompt(preset, primary), dest)
-        print("    [thumb] AI hero image ready (Cloudflare Workers AI)")
+        generate(thumbnail_prompt(preset, primary, style_idx, trend_idx), dest)
+        print(f"    [thumb] AI hero image ready (Cloudflare Workers AI) "
+              f"style={style_idx}")
         return dest
     except AIImageError as exc:
         print(f"    [thumb] AI image failed ({exc}); using the procedural thumbnail")
